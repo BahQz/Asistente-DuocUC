@@ -1,0 +1,20 @@
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Variables de entorno con secretos
+.env
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Memoria persistida
+.historial/
+
+# Sistema operativo / editor
+.DS_Store
+.idea/
+.vscode/

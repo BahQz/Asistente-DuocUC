@@ -1,0 +1,200 @@
+BASE DE CONOCIMIENTO ESTUDIANTIL - DUOC UC
+Última actualización: Marzo 2026
+Uso: Repositorio oficial de consultas frecuentes de estudiantes de Duoc UC.
+Este documento delimita la ÚNICA información que el asistente puede usar.
+
+## Sección 1: Admisión y Matrícula
+
+1.1 Postulación en línea
+La postulación a Duoc UC se realiza en el portal de admisión con el RUT y el
+correo electrónico del postulante. Se debe completar el formulario, adjuntar la
+cédula de identidad por ambos lados y, si corresponde, el certificado de
+licencia de enseñanza media.
+
+1.2 Plazos de matrícula
+La matrícula de alumnos nuevos se realiza durante la última semana de febrero.
+La matrícula de alumnos antiguos se realiza en la primera quincena de enero.
+Una vez matriculado, el estudiante obtiene su credencial virtual y su correo
+institucional en el plazo de 48 horas hábiles.
+
+1.3 Documentación pendiente
+Si el estudiante no presenta el certificado de licencia de enseñanza media en
+los primeros 30 días del semestre, su matrícula queda observada y no podrá
+inscribir asignaturas del siguiente periodo.
+
+## Sección 2: Calendario Académico
+
+2.1 Inicio y término de semestre
+El primer semestre inicia la primera semana de marzo y finaliza la última
+semana de junio. El segundo semestre inicia la primera semana de agosto y
+finaliza la última semana de noviembre.
+
+2.2 Períodos de evaluación
+Las evaluaciones solemnes se realizan durante las semanas 6, 11 y 15 de cada
+semestre. El examen final se rinde en la semana 18. Las fechas exactas se
+publican en la plataforma institucional al inicio del semestre.
+
+2.3 Período de retiro de asignaturas
+El estudiante puede retirar una asignatura sin registro en el historial hasta
+la semana 8 del semestre. Entre la semana 9 y la semana 12 el retiro aparece
+con la nota "W" (retiro justificado). Después de la semana 12 no se permite
+retirar asignaturas del periodo.
+
+## Sección 3: Becas y Beneficios Estudiantiles
+
+3.1 Beca de Excelencia Académica
+Se otorga a estudiantes con promedio igual o superior a 5.5 y sin ramos
+reprobados en el semestre anterior. Cubre el 30% del arancel del semestre
+siguiente y se postula en el portal de beneficios entre el 1 y el 15 de julio.
+
+3.2 Beca de Apoyo Socioeconómico
+Dirigida a estudiantes con situación socioeconómica vulnerable acreditada con
+el Registro Social de Hogares. Cubre hasta el 50% del arancel y requiere
+mantener un promedio mínimo de 4.5.
+
+3.3 Beneficio de Alimentación
+Entrega un descuento en los casinos del campus para estudiantes que tengan la
+beca de apoyo socioeconómico vigente. El descuento es de $1.500 por almuerzo
+y se aplica presentando la credencial digital.
+
+3.4 Requisitos generales de mantención
+Para mantener cualquier beca el estudiante debe: aprobar todas las asignaturas
+del semestre, mantener el promedio exigido por cada beneficio y no registrar
+sanciones disciplinarias graves.
+
+## Sección 4: Evaluaciones, Asistencia y Aprobación
+
+4.1 Asistencia mínima
+La asistencia mínima para aprobar una asignatura es de 75%. Las carreras de la
+salud y educación exigen una asistencia mínima de 85%. El sistema registra la
+asistencia por clase en la plataforma.
+
+4.2 Escala de notas
+La escala de notas va de 1.0 a 7.0 y la nota mínima de aprobación es 4.0. El
+promedio final de la asignatura se calcula con 70% de las evaluaciones del
+semestre y 30% del examen final.
+
+4.3 Recorrección y evaluaciones atrasadas
+El estudiante puede solicitar recorrección de una evaluación dentro de 5 días
+hábiles desde la entrega de la nota, mediante formulario en la Dirección de
+Escuela. Las evaluaciones atrasadas solo se reprograman con justificación en
+la Secretaría de Estudios dentro de 3 días hábiles.
+
+4.4 Reprobación por inasistencia
+Si el estudiante no rinde el examen final sin justificación, reprueba la
+asignatura con nota 1.0 y debe inscribirla nuevamente en el siguiente semestre.
+
+## Sección 5: Biblioteca y Recursos de Estudio
+
+5.1 Horario de biblioteca
+La biblioteca del campus atiende de lunes a viernes de 08:00 a 21:00 horas y
+los sábados de 09:00 a 14:00 horas. En período de exámenes extiende su horario
+hasta las 22:00 horas de lunes a viernes.
+
+5.2 Préstamo de materiales
+Cada estudiante puede solicitar hasta 3 libros por 10 días corridos,
+renovables una vez si no hay lista de espera. El préstamo de notebook dura 4
+horas y requiere dejar la credencial en el mesón.
+
+5.3 Bases de datos en línea
+El estudiante accede a las bases de datos académicas con su correo
+institucional desde el portal de biblioteca, incluso fuera del campus. El
+acceso se bloquea si el estudiante mantiene materiales atrasados por más de 15
+días.
+
+## Sección 6: Servicios Estudiantiles y Bienestar
+
+6.1 Apoyo psicológico
+El servicio de apoyo psicológico es gratuito y confidencial. Se agenda en el
+portal de bienestar estudiantil o directamente en la oficina de Bienestar del
+campus. Cada estudiante tiene derecho a 8 sesiones por semestre.
+
+6.2 Nivelación académica
+Existen talleres de nivelación gratuitos de matemática y comprensión lectora
+durante las primeras 4 semanas de cada semestre. La inscripción se realiza en
+la Dirección de Escuela.
+
+6.3 Deportes y talleres
+Los talleres deportivos y artísticos son gratuitos y se inscriben en la primera
+semana de cada semestre. Los cupos son limitados y se asignan por orden de
+inscripción.
+
+## Sección 7: Práctica Profesional y Titulación
+
+7.1 Requisitos de práctica
+Para iniciar la práctica profesional el estudiante debe tener aprobado el 100%
+de las asignaturas hasta el penúltimo semestre y no tener observaciones
+disciplinarias. La práctica tiene una duración mínima de 8 semanas.
+
+7.2 Informe y evaluación de práctica
+Al finalizar la práctica el estudiante debe entregar un informe dentro de 10
+días hábiles y el supervisor debe enviar la evaluación al correo de práctica
+de la escuela. La práctica se aprueba con nota igual o superior a 4.0.
+
+7.3 Proceso de titulación
+El proceso de titulación comienza cuando el estudiante aprueba la práctica y
+todas las asignaturas. Se debe postular al tema de titulación en el portal y
+contar con un profesor guía asignado por la escuela.
+
+## Sección 8: Aranceles, Pagos y Financiamiento
+
+8.1 Fecha de pago
+El arancel se paga en dos cuotas por semestre. La primera cuota vence el 15 de
+marzo y la segunda el 15 de abril. Las cuotas se pagan por transferencia o en
+el portal de pagos con tarjeta.
+
+8.2 Recargo por atraso
+El pago atrasado genera un recargo del 2% sobre la cuota. Si el estudiante
+acumula dos cuotas impagas, su matrícula queda suspendida y no puede rendir
+evaluaciones.
+
+8.3 Financiamiento interno
+El estudiante puede solicitar un plan de pago en cuotas sin interés hasta en 6
+cuotas, presentando la solicitud en la Dirección de Finanzas antes del 28 de
+febrero.
+
+## Sección 9: Contacto y Canales de Soporte
+
+9.1 Mesa de ayuda
+La mesa de ayuda atiende consultas sobre matrícula, pagos y plataforma en el
+correo soporte@duocuc.cl y en el teléfono 600-300-4000 de lunes a viernes de
+08:00 a 20:00 horas.
+
+9.2 Dirección de Escuela
+Cada carrera cuenta con una Dirección de Escuela. El horario de atención es de
+lunes a viernes de 09:00 a 17:00 horas. Las consultas académicas y de
+recorrección se presentan en esta oficina.
+
+9.3 Coordinación de práctica
+La coordinación de práctica de cada escuela atiende en el correo
+practica@duocuc.cl y publica las fechas importantes en la plataforma.
+
+## Sección 10: Convivencia y Reglamento
+
+10.1 Falta leve
+Las faltas leves, como el uso indebido del celular en evaluaciones, se
+sancionan con amonestación verbal más una anotación en la hoja de vida
+académica.
+
+10.2 Falta grave
+Las faltas graves, como el plagio comprobado o la suplantación de identidad,
+se sancionan con suspensión académica de hasta un semestre y la reprobación de
+la asignatura involucrada.
+
+10.3 Uso de credencial
+La credencial es personal e intransferible. Prestar la credencial a un tercero
+constituye una falta grave.
+
+## Sección 11: Ayuda con este Asistente
+
+11.1 Alcance del asistente
+Este asistente responde únicamente consultas basadas en la presente base de
+conocimiento institucional. Si la consulta no aparece, responde que no cuenta
+con esa información.
+
+11.2 Cómo obtener ayuda humana
+Si el asistente no puede responder, el estudiante debe escribir a la mesa de
+ayuda soporte@duocuc.cl o llamar al 600-300-4000 para recibir atención de una
+persona.
+
+FIN DE LA BASE DE CONOCIMIENTO
