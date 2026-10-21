@@ -622,21 +622,3 @@ Wei, F. (2024). Multilingual E5 text embeddings: A technical report.
 Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., & Cao, Y.
 (2023). ReAct: Synergizing reasoning and acting in language models. *ICLR
 2023*. https://arxiv.org/abs/2210.03629
-
----
-
-## 16. Declaración de uso de IA
-
-De acuerdo con los lineamientos de la asignatura, se utilizó IA generativa como
-apoyo para la refactorización del código, la revisión de redacción y la
-generación de diagramas. Todas las decisiones de arquitectura, la validación
-funcional y las conclusiones deben ser revisadas y asumidas por el autor.
-Las **reflexiones individuales** de la sección de conclusiones deben redactarse
-sin apoyo de IA. Referencia institucional:
-[Bibliotecas Duoc UC — IA](https://bibliotecas.duoc.cl/ia).
-
----
-
-## Licencia
-
-Proyecto académico — **Benjamín Quiroz**, ISY0101. Uso educativo.
