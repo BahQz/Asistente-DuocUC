@@ -1,0 +1,27 @@
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Variables de entorno con secretos
+.env
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Memoria persistida
+.historial/
+
+# Base de datos vectorial (se reconstruye con construir_indice.py)
+.chroma/
+
+# Borradores generados por la herramienta de escritura
+documentos/
+
+# Sistema operativo / editor
+.DS_Store
+.idea/
+.vscode/
