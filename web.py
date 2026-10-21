@@ -1,14 +1,3 @@
-"""Interfaz web (Streamlit) del agente estudiantil de Duoc UC.
-
-Muestra la conversación, la traza ReAct (plan → herramienta → observación),
-las fuentes recuperadas de ChromaDB y los borradores generados para descargar.
-
-Ejecutar con:
-    streamlit run web.py
-
-Autor: Benjamín Quiroz
-"""
-
 import json
 from pathlib import Path
 
@@ -111,18 +100,15 @@ SUGERENCIAS = [
 
 @st.cache_resource(show_spinner=False)
 def cargar_agente_lc():
-    """Carga una sola vez el grafo ReAct y el cliente del modelo."""
     return construir_agente()
 
 
 @st.cache_resource(show_spinner=False)
 def cargar_indice():
-    """Carga una sola vez el modelo de embeddings y el índice vectorial."""
     return informacion_indice()
 
 
 def obtener_memoria() -> MemoriaConversacional:
-    """Devuelve la memoria de esta sesión del navegador."""
     if "memoria" not in st.session_state:
         st.session_state.memoria = MemoriaConversacional(
             max_turnos=MEMORIA_MAX_TURNOS, ruta=None
@@ -131,7 +117,6 @@ def obtener_memoria() -> MemoriaConversacional:
 
 
 def obtener_agente() -> AgenteDuocUC:
-    """Construye la fachada del agente para la sesión actual."""
     with st.spinner("Cargando el agente…"):
         agente_lc = cargar_agente_lc()
     return AgenteDuocUC(agente=agente_lc, memoria=obtener_memoria())
@@ -141,12 +126,11 @@ def _cargar_indice_silencioso() -> dict:
     try:
         with st.spinner("Preparando el índice vectorial…"):
             return cargar_indice()
-    except Exception as exc:  # noqa: BLE001 - se muestra en la barra lateral
+    except Exception as exc:  # noqa: BLE001
         return {"fragmentos": 0, "modelo": EMBEDDINGS_MODEL, "error": str(exc)}
 
 
 def _resumen_resultado(evento: dict) -> str:
-    """Recorta la salida de una herramienta para mostrarla en la traza."""
     resultado = (evento.get("resultado") or "").strip()
     if evento.get("nombre") == "redactar_borrador":
         primera = next(
@@ -162,7 +146,6 @@ def _resumen_resultado(evento: dict) -> str:
 
 
 def mostrar_traza(mensaje: dict) -> None:
-    """Muestra el plan y las herramientas usadas por el agente."""
     eventos = mensaje.get("eventos") or []
     if not eventos:
         return
@@ -197,7 +180,6 @@ def mostrar_traza(mensaje: dict) -> None:
 
 
 def mostrar_fuentes(mensaje: dict) -> None:
-    """Muestra las secciones del reglamento que sustentan la respuesta."""
     fuentes = mensaje.get("fuentes") or []
     if not fuentes:
         return
@@ -218,7 +200,6 @@ def mostrar_fuentes(mensaje: dict) -> None:
 
 
 def mostrar_borradores(mensaje: dict, posicion: int) -> None:
-    """Muestra y permite descargar los borradores creados en el turno."""
     borradores = mensaje.get("borradores") or []
     for numero, borrador in enumerate(borradores):
         with st.expander(
@@ -243,7 +224,6 @@ def mostrar_borradores(mensaje: dict, posicion: int) -> None:
 
 
 def procesar_pregunta(pregunta: str) -> None:
-    """Ejecuta el agente y dibuja el intercambio completo."""
     st.session_state.mensajes.append({"role": "user", "content": pregunta})
     with st.chat_message("user", avatar="🧑"):
         st.markdown(pregunta)
@@ -256,7 +236,7 @@ def procesar_pregunta(pregunta: str) -> None:
             resultado = {"respuesta": f"⚙️ {exc}", "fuentes": [], "eventos": []}
         except ErrorAgente as exc:
             resultado = {"respuesta": f"⚠️ {exc}", "fuentes": [], "eventos": []}
-        except Exception as exc:  # noqa: BLE001 - la app no debe caerse
+        except Exception as exc:  # noqa: BLE001
             resultado = {
                 "respuesta": (
                     "⚠️ Ocurrió un error inesperado al procesar tu consulta. "
@@ -283,7 +263,6 @@ def procesar_pregunta(pregunta: str) -> None:
     )
 
 
-# --------------------------------------------------------------- Encabezado
 st.markdown(
     """
     <div class="dq-encabezado">
@@ -312,7 +291,6 @@ if "mensajes" not in st.session_state:
 if "pregunta_pendiente" not in st.session_state:
     st.session_state.pregunta_pendiente = None
 
-# ------------------------------------------------------------------ Barra lateral
 with st.sidebar:
     st.markdown("### 🎓 Duqui")
     st.caption("Agente estudiantil · Duoc UC")
@@ -360,7 +338,6 @@ with st.sidebar:
     st.caption("Autor: Benjamín Quiroz · ISY0101")
 
 
-# --------------------------------------------------------------- Configuración
 if not LLM_API_KEY:
     st.error(
         "Falta configurar la API key del modelo. Crea un archivo `.env` a partir "
@@ -374,7 +351,6 @@ if not LLM_API_KEY:
     )
     st.stop()
 
-# --------------------------------------------------------------- Chat
 if not st.session_state.mensajes:
     st.markdown("#### ¿En qué te puedo ayudar hoy?")
     st.caption(

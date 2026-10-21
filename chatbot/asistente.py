@@ -1,19 +1,3 @@
-"""Consola interactiva del agente estudiantil de Duoc UC.
-
-La interfaz web (``web.py``) es la vía recomendada, pero esta consola permite
-probar el agente sin Streamlit y es útil para depurar la traza ReAct.
-
-Ejecutar con:
-    PYTHONPATH=. python chatbot/asistente.py
-
-Comandos:
-    /limpiar   vacía la memoria de la conversación
-    /ayuda     muestra los comandos disponibles
-    salir      termina y guarda la sesión
-
-Autor: Benjamín Quiroz
-"""
-
 from chatbot.agente import AgenteDuocUC, ErrorAgente, ErrorConfiguracion
 from chatbot.memoria import crear_memoria
 
@@ -29,7 +13,6 @@ ICONOS = {
 
 
 def _imprimir_traza(resultado) -> None:
-    """Muestra las decisiones del agente en la consola."""
     if not resultado.eventos:
         return
     print("  ┌─ Traza del agente " + "─" * 40)
@@ -48,8 +31,7 @@ def _imprimir_traza(resultado) -> None:
 
 def main() -> None:
     print("=" * 62)
-    print("  Asistente Estudiantil Duoc UC — Agente ReAct")
-    print("  LangChain + ChromaDB + memoria conversacional")
+    print("  Asistente Estudiantil Duoc UC")
     print("=" * 62)
     print("Escribe 'salir' para terminar o '/ayuda' para ver los comandos.\n")
 
@@ -106,7 +88,7 @@ def main() -> None:
             print()
         except ErrorAgente as exc:
             print(f"\n  ⚠️  {exc}\n")
-        except Exception as exc:  # noqa: BLE001 - la consola no debe caerse
+        except Exception as exc:  # noqa: BLE001
             print(f"\n  ⚠️  Error inesperado: {exc}\n")
 
 

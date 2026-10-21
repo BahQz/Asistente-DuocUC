@@ -1,19 +1,3 @@
-"""Herramienta de escritura: generación y memoria de borradores.
-
-Los borradores se construyen con plantillas institucionales en Markdown, se
-guardan en ``documentos/`` y se registran en ``documentos/registro.json``.
-Ese registro funciona como **memoria de artefactos**: permite que el agente
-recupere un documento generado varios turnos antes, aunque ya haya salido de la
-ventana de memoria conversacional.
-
-Las plantillas incluyen referencias explícitas a la base de conocimiento
-institucional (por ejemplo, Sección 4.3 para justificaciones). Los datos que el
-estudiante no entrega quedan como marcadores entre corchetes para que los
-complete antes de firmar.
-
-Autor: Benjamín Quiroz
-"""
-
 import json
 import re
 import unicodedata
@@ -74,8 +58,6 @@ FUNDAMENTOS = {
 
 @dataclass
 class Borrador:
-    """Documento generado y persistido."""
-
     id: str
     archivo: str
     tipo: str
@@ -102,7 +84,6 @@ def _fecha_larga(fecha: date | None = None) -> str:
 
 
 def _detectar_tipo(tipo: str) -> str:
-    """Mapea texto libre del agente a uno de los tipos de plantilla."""
     clave = _normalizar(tipo).replace(" ", "_")
     if clave in TIPOS_VALIDOS:
         return clave
@@ -246,22 +227,6 @@ def generar_borrador(
     detalles: str = "",
     fundamento: str = "",
 ) -> Borrador:
-    """Genera un borrador formal, lo guarda y lo registra.
-
-    Args:
-        tipo: tipo de documento (justificación, recorrección, retiro, beneficio
-            o carta general). Se aceptan variantes en lenguaje natural.
-        motivo: razón principal del documento.
-        nombre_estudiante: nombre completo, si se conoce.
-        asignatura: asignatura involucrada, si corresponde.
-        fecha_referencia: fecha del hecho (evaluación, entrega, etc.).
-        detalles: antecedentes adicionales que el estudiante quiera incluir.
-        fundamento: referencia normativa. Si se omite, se usa la de la base de
-            conocimiento institucional para ese tipo de documento.
-
-    Returns:
-        El borrador generado, con su ruta y contenido.
-    """
     tipo_normalizado = _detectar_tipo(tipo)
     titulo = TIPOS_VALIDOS[tipo_normalizado]
 
@@ -313,13 +278,11 @@ def generar_borrador(
 
 
 def listar_borradores(limite: int = 10) -> list[dict]:
-    """Lista los borradores registrados, del más reciente al más antiguo."""
     registros = _leer_registro()
     return registros[: max(1, int(limite))]
 
 
 def leer_borrador(identificador: str) -> Borrador | None:
-    """Recupera un borrador por ID, nombre de archivo o prefijo de ambos."""
     buscado = (identificador or "").strip()
     if not buscado:
         return None

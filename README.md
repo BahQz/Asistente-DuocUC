@@ -39,17 +39,36 @@ funcional**:
 - **Es empático y flexible**: si la pregunta es ambigua, pide aclaraciones;
   si no encuentra información, lo dice y deriva a la mesa de ayuda.
 
-### Documentación complementaria
+### Documentación y entregables
 
-| Documento | Contenido |
-|---|---|
-| [`docs/arquitectura.md`](docs/arquitectura.md) | Diagramas Mermaid, contratos de herramientas y decisiones de diseño |
-| [`docs/informe_tecnico.md`](docs/informe_tecnico.md) | Esquema del informe de máximo 5 páginas, con cobertura de indicadores |
-| [`docs/guion_demostracion.md`](docs/guion_demostracion.md) | Guion de la defensa de 10 minutos, contingencias y preguntas del jurado |
+| Documento | Formato | Contenido |
+|---|---|---|
+| [`docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf`](docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf) | PDF | **Informe técnico final (EP2)**: justificación arquitectónica, comparativa experimental y reflexiones |
+| [`docs/PresentacionSol-IaBenjaminQuiroz.pdf`](docs/PresentacionSol-IaBenjaminQuiroz.pdf) | PDF | **Presentación para la defensa**: diapositivas del proyecto y resumen ejecutivo |
+| [`docs/Ev1_SolucionesIA_BenjaminQuiroz.pdf`](docs/Ev1_SolucionesIA_BenjaminQuiroz.pdf) | PDF | **Informe de referencia (EP1)**: entrega previa del RAG léxico con TF-IDF |
 
 ---
 
-## 2. Cambios respecto de la EP1
+## 2. Evolución del proyecto: qué se quitó y qué se añadió
+
+### 2.1 Qué se quitó del código anterior (EP1)
+
+* **Eliminación del motor léxico TF-IDF**: Se descartó por completo `scikit-learn` (`TfidfVectorizer`), el conteo estático de frecuencias de palabras, las stopwords manuales y los diccionarios fijos de sinónimos. El modelo léxico fallaba ante variaciones morfológicas y errores tipográficos comunes en consultas de estudiantes.
+* **Eliminación del enrutamiento rígido por reglas (`if/elif`)**: En la versión previa, la ejecución de lógica externa dependía de condiciones duras en Python (`if "feriado" in consulta: ...`). Se eliminó para dar paso al razonamiento autónomo del agente mediante *tool calling*.
+* **Eliminación del prompt estático de una sola llamada**: Se sustituyó el prompt monolítico sin retroalimentación por un ciclo dinámico ReAct (*Reason + Act + Observe*), donde el modelo evalúa los resultados intermedios de las herramientas antes de elaborar la respuesta final.
+* **Depuración de borradores y archivos preliminares en `docs/`**: Se eliminaron de la carpeta `docs/` los borradores de texto intermedios y esquemas desactualizados (`informe_tecnico.md`, `informe_tecnico_EP2.docx`, `informe_tecnico_esquema.md`, `presentacion_5min.pptx`, `presentacion_5min_guion.md`), consolidando la entrega definitiva en los informes oficiales en formato PDF.
+* **Limpieza de comentarios y docstrings artificiales**: Se realizó una limpieza profunda de docstrings redundantes y comentarios explicativos tipo tutorial en todos los módulos de `chatbot/` y scripts raíz, dejando una base de código limpia y lista para evaluación.
+
+### 2.2 Qué se añadió de nuevo (EP2)
+
+* **Pipeline RAG Semántico (Embeddings E5 + ChromaDB)**: Indexación vectorial estructurada con `intfloat/multilingual-e5-small` y persistencia local en `.chroma/`, permitiendo encontrar normas ante consultas con erratas o lenguaje coloquial (ej. *"asta cuando puedo retirar un ramo"* encuentra la Sección 2.3).
+* **Agente ReAct con LangChain 1.x / LangGraph**: Orquestación autónoma mediante `create_agent` que razona paso a paso, evalúa resultados intermedios y encadena herramientas en tareas complejas multi-etapa.
+* **7 Herramientas del Agente**: Búsqueda semántica, fecha actual, feriados de Chile (`date.nager.at`), cálculo automático de plazos en días hábiles (excluyendo feriados y fines de semana), redacción de borradores formales y memoria de artefactos (`listar_borradores` / `leer_borrador`).
+* **Memoria de corto y largo plazo**: Ventana deslizante para el historial del chat y registro estructurado (`documentos/registro.json`) para recuperar documentos generados en turnos anteriores.
+* **Interfaz Web Streamlit**: Chat interactivo con visualización desplegable de la traza ReAct (plan, herramienta, parámetros, observación), citas con puntaje de relevancia coseno y descarga directa de borradores en `.md`.
+* **Suite de 22 pruebas automatizadas**: Cobertura completa con `unittest` para fragmentación, búsqueda semántica tolerante a fallos, plazos hábiles, memoria conversacional y ciclo ReAct simulado.
+
+### 2.3 Comparativa resumida EP1 vs. EP2
 
 | Dimensión | EP1 (RAG estático) | EP2 (agente funcional) |
 |---|---|---|
@@ -62,7 +81,7 @@ funcional**:
 | Memoria largo plazo | Base de conocimiento en texto | **ChromaDB persistente** + registro de borradores |
 | Prompt | Reglas estrictas, poca conversación | Prompt empático, con criterios de aclaración y derivación |
 | Interfaz | Chat + fuentes | Chat + **traza ReAct** + fuentes con relevancia + **descarga de borradores** |
-| Documentación | README + arquitectura | README + **diagrama Mermaid** + informe técnico + guion de defensa + 22 pruebas |
+| Documentación | README + arquitectura | README + **diagramas Mermaid** + informe PDF + presentación PDF + 22 pruebas |
 
 ---
 
@@ -124,7 +143,7 @@ sequenceDiagram
 ```
 
 > El diagrama completo, con decisiones de diseño y estados del bucle ReAct,
-> está en [`docs/arquitectura.md`](docs/arquitectura.md).
+> se detalla también en el informe técnico [`docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf`](docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf).
 
 ---
 
@@ -160,8 +179,8 @@ sequenceDiagram
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/BahQz/asistente-duoc-rag-final.git
-cd asistente-duoc-rag-final
+git clone https://github.com/BahQz/Asistente-DuocUC.git
+cd Asistente-DuocUC
 
 # 2. Crear y activar el entorno virtual
 python -m venv .venv
@@ -522,13 +541,14 @@ pide la pauta (IE7).
 ├── data/
 │   └── base_conocimiento_duoc.txt
 ├── docs/
-│   ├── arquitectura.md       # Diagrama y decisiones de diseño
-│   ├── informe_tecnico.md    # Esquema del informe (máx. 5 páginas)
-│   └── guion_demostracion.md # Guion de la defensa (10 minutos)
+│   ├── Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf  # Informe técnico oficial EP2
+│   ├── PresentacionSol-IaBenjaminQuiroz.pdf    # Presentación de defensa
+│   ├── Ev1_SolucionesIA_BenjaminQuiroz.pdf     # Informe de referencia EP1
+│   └── assets/                                 # Diagramas y capturas de prueba
 ├── tests/
 │   └── test_asistente.py     # 22 pruebas automatizadas
 ├── .streamlit/
-│   └── config.toml
+│   └── config.toml           # Configuración de tema y servidor Streamlit
 ├── construir_indice.py       # Script de indexación
 ├── verificar_proveedor.py    # Diagnóstico de clave, modelo y tool calling
 ├── web.py                    # Interfaz Streamlit

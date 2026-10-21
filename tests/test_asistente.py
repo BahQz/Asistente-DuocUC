@@ -1,14 +1,3 @@
-"""Pruebas del agente estudiantil de Duoc UC (EP2).
-
-Cubren la recuperación semántica, las herramientas, la memoria y la extracción
-de la traza ReAct. Las pruebas de embeddings requieren descargar el modelo la
-primera vez (se cachea en ``~/.cache/huggingface``).
-
-Ejecutar con:
-    PYTHONPATH=. python -m unittest discover -s tests -v
-
-Autor: Benjamín Quiroz
-"""
 
 import os
 import tempfile
@@ -50,7 +39,6 @@ class TestFragmentacion(unittest.TestCase):
 
 
 class TestRecuperacionSemantica(unittest.TestCase):
-    """La búsqueda debe ser semántica: tolera erratas y descarta ruido."""
 
     @classmethod
     def setUpClass(cls):
@@ -227,7 +215,6 @@ class TestMemoriaConversacional(unittest.TestCase):
 
 
 class AgenteFalso:
-    """Simula el grafo ReAct para probar la orquestación sin consumir API."""
 
     def __init__(self, borrador):
         self.borrador = borrador

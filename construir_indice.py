@@ -1,14 +1,3 @@
-"""Construye o actualiza el índice vectorial de los reglamentos.
-
-Uso:
-    python construir_indice.py
-    python construir_indice.py --reindexar
-    python construir_indice.py --probar "asta cuando puedo retirar un ramo"
-
-El índice se guarda en ``.chroma/`` y se reutiliza entre ejecuciones. Solo se
-reconstruye cuando cambia la base de conocimiento o el modelo de embeddings.
-"""
-
 import argparse
 
 from chatbot.conocimiento import (

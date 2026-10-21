@@ -1,21 +1,3 @@
-"""Agente ReAct del Asistente Estudiantil de Duoc UC.
-
-Orquestación con **LangChain 1.x / LangGraph**:
-
-* ``create_agent`` construye un grafo ReAct (Reason → Act → Observe) que
-  decide autónomamente qué herramienta invocar y cuándo responder.
-* El modelo se conecta mediante el endpoint compatible con OpenAI de Groq
-  (GPT-OSS 120B por defecto). La integración nativa de Gemini 3.5 Flash queda
-  disponible como alternativa cambiando las variables de entorno.
-* La memoria de corto plazo se inyecta en cada turno como historial de
-  mensajes (ventana deslizante). La de largo plazo vive en ChromaDB y en el
-  registro de borradores.
-* La traza de herramientas se extrae de los mensajes del grafo para mostrarla
-  en la interfaz y para auditar las decisiones del agente.
-
-Autor: Benjamín Quiroz
-"""
-
 import re
 import time
 from dataclasses import dataclass, field
@@ -65,7 +47,7 @@ trámites académicos y administrativos con cercanía, paciencia y precisión.
 1. COMPRENDE: identifica qué necesita el estudiante y qué datos faltan.
 2. PLANIFICA: antes de usar una herramienta, escribe UNA línea breve que empiece
    con "Plan:" y explique qué harás y por qué. No escribas cadenas de
-   pensamiento largas ni uses etiquetas  thinking.
+   pensamiento largas ni uses etiquetas <think>.
 3. ACTÚA: invoca la herramienta adecuada. Puedes encadenar varias si la tarea
    tiene etapas (por ejemplo: buscar el plazo → calcular la fecha → redactar).
 4. OBSERVA: revisa el resultado. Si no responde la pregunta, reformula la
@@ -151,17 +133,15 @@ PATRON_ARCHIVO_BORRADOR = re.compile(r"^Archivo:\s*(.+)$", re.MULTILINE)
 
 
 class ErrorConfiguracion(RuntimeError):
-    """Falta configuración necesaria para construir el agente."""
+    pass
 
 
 class ErrorAgente(RuntimeError):
-    """Error controlado durante la ejecución del agente."""
+    pass
 
 
 @dataclass
 class ResultadoAgente:
-    """Resultado de un turno del agente."""
-
     respuesta: str
     fuentes: list[dict] = field(default_factory=list)
     eventos: list[dict] = field(default_factory=list)
@@ -170,7 +150,6 @@ class ResultadoAgente:
     turnos_memoria: int = 0
 
     def como_dict(self) -> dict:
-        """Serializa el resultado para guardarlo en ``st.session_state``."""
         return {
             "respuesta": self.respuesta,
             "fuentes": self.fuentes,
@@ -181,16 +160,7 @@ class ResultadoAgente:
         }
 
 
-# --------------------------------------------------------------------------
-# Construcción del modelo y del grafo
-# --------------------------------------------------------------------------
 def crear_llm() -> BaseChatModel:
-    """Crea el cliente del modelo según el proveedor configurado.
-
-    Gemini usa la integración nativa de LangChain porque el endpoint
-    compatible con OpenAI no conserva las firmas de pensamiento que Gemini 3
-    exige para el tool calling. Groq y OpenRouter siguen usando ChatOpenAI.
-    """
     if not LLM_API_KEY:
         raise ErrorConfiguracion(
             "Falta LLM_API_KEY. Copia .env.example a .env y agrega tu clave de "
@@ -226,7 +196,6 @@ def crear_llm() -> BaseChatModel:
 
 
 def construir_agente(llm=None):
-    """Construye el grafo ReAct con las herramientas y el prompt del asistente."""
     return create_agent(
         model=llm or crear_llm(),
         tools=HERRAMIENTAS,
@@ -235,11 +204,7 @@ def construir_agente(llm=None):
     )
 
 
-# --------------------------------------------------------------------------
-# Utilidades de extracción
-# --------------------------------------------------------------------------
 def _texto(contenido) -> str:
-    """Convierte contenido de LangChain (str o bloques) en texto plano."""
     if isinstance(contenido, str):
         return contenido
     if isinstance(contenido, list):
@@ -255,7 +220,6 @@ def _texto(contenido) -> str:
 
 
 def limpiar_respuesta(contenido: str) -> str:
-    """Quita bloques de razonamiento del modelo y espacios sobrantes."""
     if not contenido:
         return ""
     contenido = re.sub(r"<think>.*?</think>", "", contenido, flags=re.DOTALL)
@@ -267,12 +231,6 @@ def limpiar_respuesta(contenido: str) -> str:
 def _mensajes_nuevos(
     todos: list[BaseMessage], entrada: list[BaseMessage]
 ) -> list[BaseMessage]:
-    """Devuelve solo los mensajes generados en este turno.
-
-    El grafo conserva los mensajes de entrada; se filtran por ID para no
-    confundirlos con la traza nueva. Si los mensajes no traen ID, se usa la
-    posición del último mensaje del usuario como respaldo.
-    """
     ids_entrada = {m.id for m in entrada if getattr(m, "id", None)}
     if ids_entrada:
         return [
@@ -290,7 +248,6 @@ def _mensajes_nuevos(
 
 
 def _respuesta_final(nuevos: list[BaseMessage]) -> str:
-    """Obtiene el último mensaje del asistente que no sea una llamada a tool."""
     for mensaje in reversed(nuevos):
         if isinstance(mensaje, AIMessage):
             texto = limpiar_respuesta(_texto(mensaje.content))
@@ -305,7 +262,6 @@ def _respuesta_final(nuevos: list[BaseMessage]) -> str:
 
 
 def _extraer_eventos(nuevos: list[BaseMessage]) -> list[dict]:
-    """Construye la traza ReAct: plan, herramienta y observación."""
     eventos: list[dict] = []
     por_llamada: dict[str, dict] = {}
 
@@ -354,7 +310,6 @@ def _extraer_eventos(nuevos: list[BaseMessage]) -> list[dict]:
 
 
 def _extraer_fuentes(eventos: list[dict]) -> list[dict]:
-    """Extrae las fuentes citadas por la herramienta de búsqueda."""
     fuentes: list[dict] = []
     vistos: set[tuple[str, str]] = set()
 
@@ -380,7 +335,6 @@ def _extraer_fuentes(eventos: list[dict]) -> list[dict]:
 
 
 def _extraer_borradores(eventos: list[dict]) -> list[dict]:
-    """Recupera los borradores creados en este turno."""
     borradores: list[dict] = []
     vistos: set[str] = set()
 
@@ -438,12 +392,7 @@ def _mensaje_error(exc: Exception) -> str:
     return f"No pude completar la consulta con el modelo: {texto}"
 
 
-# --------------------------------------------------------------------------
-# Fachada del agente
-# --------------------------------------------------------------------------
 class AgenteDuocUC:
-    """Orquesta el grafo ReAct, la memoria y la extracción de evidencia."""
-
     def __init__(
         self,
         agente=None,
@@ -475,12 +424,6 @@ class AgenteDuocUC:
         raise ErrorAgente(_mensaje_error(ultimo_error or Exception("error desconocido")))
 
     def responder(self, consulta: str) -> ResultadoAgente:
-        """Procesa un turno completo del estudiante.
-
-        Raises:
-            ErrorConfiguracion: si falta la API key.
-            ErrorAgente: si el proveedor falla o el grafo no puede completarse.
-        """
         consulta = (consulta or "").strip()
         if not consulta:
             return ResultadoAgente(
@@ -525,12 +468,10 @@ class AgenteDuocUC:
         )
 
     def limpiar_memoria(self) -> None:
-        """Vacía la conversación y guarda el estado vacío."""
         self.memoria.limpiar()
         self.memoria.guardar()
 
 
 def responder_consulta(memoria: MemoriaConversacional, consulta: str) -> dict:
-    """Fachada simple para scripts y pruebas de integración."""
     agente = AgenteDuocUC(memoria=memoria)
     return agente.responder(consulta).como_dict()

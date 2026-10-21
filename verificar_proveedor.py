@@ -1,23 +1,8 @@
-"""Verificación rápida del proveedor de LLM configurado.
-
-Uso:
-    python verificar_proveedor.py
-    python verificar_proveedor.py --consulta "asta cuando puedo retirar un ramo"
-
-La primera forma solo comprueba que la clave, la URL base y el modelo
-respondan. La segunda ejecuta un turno completo del agente (incluye tool
-calling y recuperación semántica), por lo que consume más tokens.
-
-No imprime la API key.
-"""
-
 from __future__ import annotations
 
 import argparse
 import sys
 
-# La consola de Windows puede usar cp1252; evitamos que un carácter Unicode
-# (por ejemplo, un espacio fino de una respuesta del modelo) rompa el script.
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 if hasattr(sys.stderr, "reconfigure"):
@@ -28,7 +13,6 @@ from chatbot.ajustes import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 
 
 def _mascara(clave: str) -> str:
-    """Describe la clave sin exponer ningún fragmento de su contenido."""
     if not clave:
         return "(vacía)"
     return f"(definida, {len(clave)} caracteres)"
@@ -70,7 +54,6 @@ def _explicar_error(exc: Exception) -> str:
 
 
 def _texto_respuesta(contenido) -> str:
-    """Normaliza la respuesta de ChatOpenAI o de ChatGoogleGenerativeAI."""
     if isinstance(contenido, list):
         partes = [
             str(bloque.get("text", ""))
@@ -102,7 +85,7 @@ def _probar_modelo() -> bool:
         texto = _texto_respuesta(getattr(respuesta, "content", respuesta))
         print(f"\n[OK] El modelo respondió: {texto[:120]}")
         return True
-    except Exception as exc:  # noqa: BLE001 - diagnóstico para el usuario
+    except Exception as exc:  # noqa: BLE001
         print(f"\n[ERROR] Falló la llamada al modelo.\n   {_explicar_error(exc)}")
         return False
 
@@ -116,7 +99,7 @@ def _probar_agente(consulta: str) -> bool:
     except (ErrorConfiguracion, ErrorAgente) as exc:
         print(f"\n[ERROR] Falló el agente.\n   {exc}")
         return False
-    except Exception as exc:  # noqa: BLE001 - diagnóstico para el usuario
+    except Exception as exc:  # noqa: BLE001
         print(f"\n[ERROR] Falló el agente.\n   {_explicar_error(exc)}")
         return False
 

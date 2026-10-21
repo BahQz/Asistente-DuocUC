@@ -1,23 +1,3 @@
-"""Memoria de largo plazo: recuperación semántica sobre los reglamentos.
-
-Este módulo reemplaza el índice léxico TF-IDF de la Evaluación Parcial 1 por
-un pipeline de **embeddings + ChromaDB**:
-
-1. La base de conocimiento se divide respetando su estructura (secciones y
-   subsecciones), de modo que cada fragmento tenga contexto propio.
-2. Cada fragmento se vectoriza con un modelo multilingüe de Sentence
-   Transformers (por defecto ``paraphrase-multilingual-MiniLM-L12-v2``).
-3. Los vectores se persisten en ChromaDB (``.chroma/``). El índice se reutiliza
-   entre ejecuciones y se reconstruye solo si cambia el reglamento o el modelo.
-4. Las consultas se comparan por similitud coseno. Al ser una búsqueda
-   semántica, tolera errores ortográficos y sinónimos sin listas manuales.
-
-La recuperación devuelve la sección y el título de cada fragmento para que el
-agente pueda citar la fuente y para que la interfaz muestre la evidencia.
-
-Autor: Benjamín Quiroz
-"""
-
 import hashlib
 import json
 import re
@@ -48,17 +28,12 @@ from chatbot.ajustes import (
 PATRON_SECCION = re.compile(r"(?m)^##\s+(.+)$")
 PATRON_SUBSECCION = re.compile(r"(?m)^(\d+\.\d+)\s+(.+)$")
 
-# Subir esta versión cuando cambie la lógica de fragmentación: invalida los
-# índices existentes y fuerza una reconstrucción automática.
 VERSION_INDICE = "2"
-
 _CANDADO = Lock()
 
 
 @dataclass(frozen=True)
 class Fragmento:
-    """Fragmento recuperado con su procedencia y puntaje de similitud."""
-
     id: str
     seccion: str
     titulo: str
@@ -67,25 +42,16 @@ class Fragmento:
 
     @property
     def cita(self) -> str:
-        """Etiqueta corta para citar la fuente en una respuesta."""
         return f"{self.seccion} — {self.titulo}" if self.titulo else self.seccion
 
 
 def normalizar(texto: str) -> str:
-    """Pasa a minúsculas y quita los acentos (se conserva para utilidades)."""
     texto = texto.lower()
     texto = unicodedata.normalize("NFKD", texto)
     return "".join(c for c in texto if not unicodedata.combining(c))
 
 
 def cargar_fragmentos(ruta: Path = BASE_CONOCIMIENTO) -> list[Document]:
-    """Lee la base de conocimiento y la divide en fragmentos con metadatos.
-
-    Se respeta la jerarquía del documento: cada subsección numerada (por
-    ejemplo ``4.1 Asistencia mínima``) es un fragmento independiente y lleva
-    el título de su sección como contexto. Esto mejora la recuperación y
-    permite citar la norma exacta.
-    """
     contenido = Path(ruta).read_text(encoding="utf-8")
     partes = PATRON_SECCION.split(contenido)
 
@@ -164,7 +130,6 @@ def cargar_fragmentos(ruta: Path = BASE_CONOCIMIENTO) -> list[Document]:
 
 
 def _huella_base(ruta: Path = BASE_CONOCIMIENTO) -> str:
-    """Hash del contenido del reglamento para detectar cambios."""
     return hashlib.sha256(Path(ruta).read_bytes()).hexdigest()[:16]
 
 
@@ -199,18 +164,10 @@ def _guardar_meta(fragmentos: int) -> None:
 
 @lru_cache(maxsize=1)
 def obtener_embeddings() -> "EmbeddingsInstitucionales":
-    """Carga (una sola vez) el modelo de embeddings multilingüe."""
     return EmbeddingsInstitucionales()
 
 
 class EmbeddingsInstitucionales(Embeddings):
-    """Adaptador de Sentence Transformers para los reglamentos de Duoc UC.
-
-    Los modelos de la familia **E5** esperan prefijos distintos para consultas
-    (``query:``) y documentos (``passage:``). Aplicarlos correctamente mejora
-    la recuperación; el adaptador los agrega de forma automática.
-    """
-
     def __init__(
         self,
         modelo: str = EMBEDDINGS_MODEL,
@@ -244,7 +201,6 @@ class EmbeddingsInstitucionales(Embeddings):
 
 
 def _abrir_coleccion() -> Chroma:
-    """Abre (o crea) la colección persistente de ChromaDB."""
     return Chroma(
         collection_name=COLECCION_REGLAMENTOS,
         embedding_function=obtener_embeddings(),
@@ -267,20 +223,11 @@ def _indice_vigente(cantidad_esperada: int) -> bool:
         return False
     try:
         return _abrir_coleccion()._collection.count() == cantidad_esperada
-    except Exception:  # pragma: no cover - colección corrupta o bloqueada
+    except Exception:
         return False
 
 
 def construir_indice(forzar: bool = False, verboso: bool = False) -> Chroma:
-    """Crea o reutiliza el índice vectorial de los reglamentos.
-
-    Args:
-        forzar: reconstruye la colección aunque la huella coincida.
-        verboso: imprime el progreso (útil para el script de indexación).
-
-    Returns:
-        La colección de Chroma lista para consultar.
-    """
     documentos = cargar_fragmentos()
 
     with _CANDADO:
@@ -297,7 +244,6 @@ def construir_indice(forzar: bool = False, verboso: bool = False) -> Chroma:
         try:
             coleccion.delete_collection()
         except Exception:
-            # La colección puede no existir todavía; se ignora.
             pass
 
         coleccion = _abrir_coleccion()
@@ -314,16 +260,12 @@ def construir_indice(forzar: bool = False, verboso: bool = False) -> Chroma:
 
 @lru_cache(maxsize=1)
 def obtener_vectorstore() -> Chroma:
-    """Devuelve la colección persistente, construyéndola la primera vez."""
     return construir_indice()
 
 
 def _puntaje(documento: Document, distancia: float) -> float:
-    """Convierte la distancia de Chroma en una relevancia coseno (0 a 1)."""
     if distancia is None:
         return 0.0
-    # Chroma con ``hnsw:space=cosine`` devuelve 1 - similitud. Se acota para
-    # que la interfaz siempre muestre un valor interpretable.
     return max(0.0, min(1.0, 1.0 - float(distancia)))
 
 
@@ -332,11 +274,6 @@ def buscar_semantico(
     top_k: int = FRAGMENTOS_POR_DEFECTO,
     umbral: float = UMBRAL_RELEVANCIA,
 ) -> list[Fragmento]:
-    """Busca los fragmentos más similares a ``consulta``.
-
-    Si ningún fragmento supera ``umbral`` se devuelve una lista vacía: es
-    preferible admitir que no hay información a entregar contexto irrelevante.
-    """
     consulta = (consulta or "").strip()
     if not consulta:
         return []
@@ -375,13 +312,6 @@ def buscar_semantico(
 
 
 def construir_buscador(top_k: int = FRAGMENTOS_POR_DEFECTO):
-    """Devuelve una función de búsqueda compatible con la versión anterior.
-
-    Se conserva como fachada para scripts o pruebas que usaban
-    ``construir_buscador()(consulta)``. Internamente ya no hay TF-IDF: la
-    búsqueda es semántica.
-    """
-
     def buscador(consulta: str, limite: int | None = None) -> list[str]:
         fragmentos = buscar_semantico(consulta, limite or top_k)
         return [fragmento.contenido for fragmento in fragmentos]
@@ -390,7 +320,6 @@ def construir_buscador(top_k: int = FRAGMENTOS_POR_DEFECTO):
 
 
 def informacion_indice() -> dict:
-    """Resumen del índice para la interfaz y los diagnósticos."""
     meta = _leer_meta()
     try:
         cantidad = obtener_vectorstore()._collection.count()

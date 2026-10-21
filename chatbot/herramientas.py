@@ -1,24 +1,3 @@
-"""Herramientas (Tools) que el agente decide cuándo invocar.
-
-Se separan dos capas:
-
-* **Funciones de dominio** (``buscar_en_base_conocimiento``,
-  ``consultar_feriados``, ``calcular_plazo``, ``redactar_borrador``…): código
-  reutilizable y testeable sin depender del LLM.
-* **Herramientas LangChain** (``@tool``): contratos con nombre, descripción y
-  esquema de argumentos que el agente ve y utiliza para razonar.
-
-Herramientas disponibles:
-1. ``buscar_reglamentos`` — consulta semántica en ChromaDB (consulta).
-2. ``consultar_fecha_actual`` / ``consultar_feriados`` — API date.nager.at
-   (consulta externa).
-3. ``calcular_plazo`` — planificación de plazos en días hábiles.
-4. ``redactar_borrador`` — escritura de documentos (con efecto real en disco).
-5. ``listar_borradores`` / ``leer_borrador`` — memoria de artefactos.
-
-Autor: Benjamín Quiroz
-"""
-
 from datetime import date, datetime, timedelta
 from functools import lru_cache
 
@@ -44,13 +23,9 @@ _MESES = [
 ]
 
 
-# --------------------------------------------------------------------------
-# 1. Consulta semántica en la base de conocimiento
-# --------------------------------------------------------------------------
 def buscar_en_base_conocimiento(
     consulta: str, top_k: int = FRAGMENTOS_POR_DEFECTO
 ) -> str:
-    """Busca fragmentos relevantes y los formatea para el agente."""
     fragmentos = buscar_semantico(consulta, top_k=top_k)
     if not fragmentos:
         return (
@@ -72,9 +47,6 @@ def buscar_en_base_conocimiento(
     return "\n\n".join(bloques)
 
 
-# --------------------------------------------------------------------------
-# 2. Fecha, feriados y cálculo de plazos (API externa)
-# --------------------------------------------------------------------------
 def _fecha_larga(fecha: date) -> str:
     return (
         f"{_DIAS[fecha.weekday()]} {fecha.day} de "
@@ -84,11 +56,6 @@ def _fecha_larga(fecha: date) -> str:
 
 @lru_cache(maxsize=8)
 def _feriados_api(anio: int) -> tuple[list[dict], str]:
-    """Consulta los feriados de Chile y cachea el resultado por año.
-
-    Returns:
-        (lista de feriados, mensaje de error). Si hay error, la lista va vacía.
-    """
     url = f"{FERIADOS_URL}/{anio}/CL"
     ultimo_error = "sin respuesta"
 
@@ -115,18 +82,11 @@ def _feriados_api(anio: int) -> tuple[list[dict], str]:
 
 
 def consultar_fecha_actual() -> str:
-    """Entrega la fecha actual en español para calcular plazos."""
     hoy = date.today()
     return f"Hoy es {_fecha_larga(hoy)}."
 
 
 def consultar_feriados(anio: int | None = None, solo_proximos: bool = False) -> str:
-    """Consulta los feriados de Chile en la API date.nager.at.
-
-    Args:
-        anio: año a consultar. Si es ``None`` o 0, usa el año actual.
-        solo_proximos: si es True, devuelve solo los feriados desde hoy.
-    """
     anio = int(anio) if anio else date.today().year
     if not 2015 <= anio <= 2100:
         return (
@@ -163,7 +123,6 @@ def consultar_feriados(anio: int | None = None, solo_proximos: bool = False) -> 
 
 
 def _parsear_fecha(texto: str) -> date | None:
-    """Acepta 'hoy', 'YYYY-MM-DD', 'DD/MM/YYYY' y 'DD-MM-YYYY'."""
     limpio = (texto or "").strip().lower()
     if limpio in ("hoy", "fecha actual", "ahora"):
         return date.today()
@@ -179,12 +138,6 @@ def _parsear_fecha(texto: str) -> date | None:
 def calcular_plazo(
     fecha_inicio: str, dias_habiles: int, proposito: str = ""
 ) -> str:
-    """Calcula el vencimiento de un plazo en días hábiles.
-
-    Se excluyen sábados, domingos y feriados nacionales de Chile. El conteo
-    comienza el día hábil siguiente a ``fecha_inicio`` (convención habitual
-    para plazos "desde" un hecho).
-    """
     inicio = _parsear_fecha(fecha_inicio)
     if inicio is None:
         return (
@@ -250,9 +203,6 @@ def calcular_plazo(
     return "\n".join(lineas)
 
 
-# --------------------------------------------------------------------------
-# 3. Escritura y memoria de artefactos
-# --------------------------------------------------------------------------
 def redactar_borrador(
     tipo: str,
     motivo: str,
@@ -262,7 +212,6 @@ def redactar_borrador(
     detalles: str = "",
     fundamento: str = "",
 ) -> Borrador:
-    """Genera un borrador formal y lo guarda en ``documentos/``."""
     return generar_borrador(
         tipo=tipo,
         motivo=motivo,
@@ -275,18 +224,13 @@ def redactar_borrador(
 
 
 def listar_borradores(limite: int = 5) -> list[dict]:
-    """Lista los borradores generados (memoria de artefactos)."""
     return _listar_borradores(limite)
 
 
 def leer_borrador(identificador: str) -> Borrador | None:
-    """Recupera un borrador por ID o nombre de archivo."""
     return _leer_borrador(identificador)
 
 
-# --------------------------------------------------------------------------
-# 4. Contratos de herramientas para el agente (LangChain)
-# --------------------------------------------------------------------------
 @tool("buscar_reglamentos")
 def herramienta_buscar_reglamentos(
     consulta: str, top_k: int = FRAGMENTOS_POR_DEFECTO
