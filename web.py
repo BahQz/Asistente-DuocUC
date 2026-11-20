@@ -1,4 +1,5 @@
 import json
+import uuid
 from pathlib import Path
 
 import streamlit as st
@@ -119,7 +120,12 @@ def obtener_memoria() -> MemoriaConversacional:
 def obtener_agente() -> AgenteDuocUC:
     with st.spinner("Cargando el agente…"):
         agente_lc = cargar_agente_lc()
-    return AgenteDuocUC(agente=agente_lc, memoria=obtener_memoria())
+    return AgenteDuocUC(
+        agente=agente_lc,
+        memoria=obtener_memoria(),
+        session_id=st.session_state.get("session_id"),
+        origen="app",
+    )
 
 
 def _cargar_indice_silencioso() -> dict:
@@ -154,6 +160,18 @@ def mostrar_traza(mensaje: dict) -> None:
         f"🧠 Traza ReAct · {herramientas} herramienta(s) · plan y observaciones",
         expanded=False,
     ):
+        metricas = mensaje.get("metricas") or {}
+        tid = mensaje.get("trace_id") or ""
+        if metricas or tid:
+            lat = metricas.get("latencia_total_ms", 0)
+            tok = metricas.get("tokens_total", 0)
+            tid_abrev = tid[:8] if tid else "n/a"
+            st.caption(f"⏱️ {lat:.0f} ms · 🪙 {tok} tokens · 🆔 traza `{tid_abrev}`")
+            try:
+                st.page_link("pages/1_Observabilidad.py", label="Ver telemetría en Dashboard", icon="📊")
+            except Exception:
+                pass
+
         for evento in eventos:
             if evento.get("tipo") == "plan":
                 st.markdown(
@@ -247,6 +265,10 @@ def procesar_pregunta(pregunta: str) -> None:
             }
 
         st.markdown(resultado["respuesta"])
+        avisos = resultado.get("avisos_seguridad") or []
+        for av in avisos:
+            if av.get("control") == "pii":
+                st.caption("🔒 Oculté datos personales antes de procesar tu consulta.")
         mostrar_fuentes(resultado)
         mostrar_traza(resultado)
         mostrar_borradores(resultado, len(st.session_state.mensajes))
@@ -259,6 +281,9 @@ def procesar_pregunta(pregunta: str) -> None:
             "eventos": resultado.get("eventos", []),
             "borradores": resultado.get("borradores", []),
             "herramientas_usadas": resultado.get("herramientas_usadas", []),
+            "trace_id": resultado.get("trace_id"),
+            "metricas": resultado.get("metricas", {}),
+            "avisos_seguridad": resultado.get("avisos_seguridad", []),
         }
     )
 
@@ -281,11 +306,13 @@ st.markdown(
     '<span class="dq-chip">ChromaDB · embeddings</span>'
     '<span class="dq-chip">Memoria conversacional</span>'
     '<span class="dq-chip">7 herramientas</span>'
-    '<span class="dq-chip dq-demo">EP2 · ISY0101</span>'
+    '<span class="dq-chip dq-demo">EP3 · 007D_OLS</span>'
     "</div>",
     unsafe_allow_html=True,
 )
 
+if "session_id" not in st.session_state:
+    st.session_state.session_id = uuid.uuid4().hex
 if "mensajes" not in st.session_state:
     st.session_state.mensajes = []
 if "pregunta_pendiente" not in st.session_state:
@@ -294,6 +321,11 @@ if "pregunta_pendiente" not in st.session_state:
 with st.sidebar:
     st.markdown("### 🎓 Duqui")
     st.caption("Agente estudiantil · Duoc UC")
+    try:
+        st.page_link("web.py", label="🎓 Chat Duqui", icon="💬")
+        st.page_link("pages/1_Observabilidad.py", label="📊 Observabilidad", icon="📊")
+    except Exception:
+        pass
     st.divider()
 
     st.markdown("**Modelo**")
@@ -335,7 +367,7 @@ with st.sidebar:
             st.caption("Directorio: `.chroma/` (persistente)")
             st.caption("Índice semántico listo para consultar.")
 
-    st.caption("Autor: Benjamín Quiroz · ISY0101")
+    st.caption("Autor: Benjamín Quiroz · 007D_OLS")
 
 
 if not LLM_API_KEY:

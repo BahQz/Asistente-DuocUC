@@ -17,6 +17,9 @@ from chatbot.ajustes import (
     AGENTE_DEBUG,
     AGENTE_MAX_ITERACIONES,
     AGENTE_REINTENTOS,
+    GUARDRAIL_INYECCION,
+    GUARDRAIL_PII,
+    GUARDRAIL_RESPALDO,
     LLM_API_KEY,
     LLM_BASE_URL,
     LLM_MAX_TOKENS,
@@ -26,10 +29,25 @@ from chatbot.ajustes import (
     LLM_THINKING_LEVEL,
     LLM_TIMEOUT,
     MEMORIA_MAX_TURNOS,
+    OBS_ZONA_GRIS,
 )
 from chatbot.documentos import leer_borrador
 from chatbot.herramientas import HERRAMIENTAS
 from chatbot.memoria import MemoriaConversacional
+from chatbot.seguridad import (
+    MENSAJE_BLOQUEO_INYECCION,
+    MENSAJE_FUGA_PROMPT,
+    MENSAJE_SIN_RESPALDO,
+    analizar_inyeccion,
+    detectar_fuga_prompt,
+    enmascarar,
+    enmascarar_obj,
+    verificar_respaldo,
+)
+from observabilidad.callbacks import ManejadorObservabilidad
+from observabilidad.metricas import es_derivacion
+from observabilidad.recursos import registrar_recursos
+from observabilidad.registro import iniciar_traza, medir_etapa, registrar, traza_actual
 
 PROMPT_SISTEMA = """\
 Eres "Duqui", el Asistente Estudiantil de Duoc UC. Acompañas a estudiantes en
@@ -148,6 +166,9 @@ class ResultadoAgente:
     borradores: list[dict] = field(default_factory=list)
     herramientas_usadas: list[str] = field(default_factory=list)
     turnos_memoria: int = 0
+    trace_id: str | None = None
+    avisos_seguridad: list[dict] = field(default_factory=list)
+    metricas: dict = field(default_factory=dict)
 
     def como_dict(self) -> dict:
         return {
@@ -157,6 +178,9 @@ class ResultadoAgente:
             "borradores": self.borradores,
             "herramientas_usadas": self.herramientas_usadas,
             "turnos_memoria": self.turnos_memoria,
+            "trace_id": self.trace_id,
+            "avisos_seguridad": self.avisos_seguridad,
+            "metricas": self.metricas,
         }
 
 
@@ -363,6 +387,27 @@ def _extraer_borradores(eventos: list[dict]) -> list[dict]:
     return borradores
 
 
+def clasificar_error(exc: Exception) -> str:
+    nombre_tipo = type(exc).__name__.lower()
+    texto = str(exc).lower()
+
+    if "graphrecursionerror" in nombre_tipo or "recursion limit" in texto or "limite de iteraciones" in texto:
+        return "limite_iteraciones"
+    if "429" in texto or "rate limit" in texto or "too many requests" in texto:
+        return "rate_limit_429"
+    if "401" in texto or "invalid api key" in texto or "unauthorized" in texto:
+        return "auth_401"
+    if ("model" in texto and ("not found" in texto or "decommission" in texto)) or "404" in texto:
+        return "modelo_no_encontrado"
+    if "timeout" in texto or "timed out" in texto:
+        return "timeout"
+    if "date.nager.at" in texto or "feriados" in texto:
+        return "red_api_externa"
+    if "herramienta" in texto or "tool" in texto:
+        return "herramienta_fallo"
+    return "otro"
+
+
 def _reintentable(exc: Exception) -> bool:
     texto = str(exc).lower()
     return any(
@@ -372,19 +417,22 @@ def _reintentable(exc: Exception) -> bool:
 
 
 def _mensaje_error(exc: Exception) -> str:
+    cat = clasificar_error(exc)
+    if cat == "limite_iteraciones":
+        return "Se alcanzó el límite máximo de iteraciones del agente al resolver la consulta."
     texto = str(exc)
-    if "401" in texto or "invalid api key" in texto.lower():
+    if cat == "auth_401":
         return (
             "La API key del proveedor no es válida. Revisa LLM_API_KEY en el "
             "archivo .env y que corresponda al proveedor de LLM_BASE_URL."
         )
-    if "429" in texto or "rate limit" in texto.lower():
+    if cat == "rate_limit_429":
         return (
             "El proveedor alcanzó su cuota de solicitudes (429). En el free "
             "tier de Gemini el límite puede ser de 20 solicitudes por día. "
             "Espera el reinicio de la cuota o cambia a Groq/OpenRouter en .env."
         )
-    if "model" in texto.lower() and ("not found" in texto.lower() or "decommission" in texto.lower()):
+    if cat == "modelo_no_encontrado":
         return (
             f"El modelo '{LLM_MODEL}' no está disponible en el proveedor. "
             "Cambia LLM_MODEL en el archivo .env."
@@ -398,22 +446,42 @@ class AgenteDuocUC:
         agente=None,
         memoria: MemoriaConversacional | None = None,
         llm=None,
+        session_id: str | None = None,
+        origen: str = "app",
+        run_id: str | None = None,
     ):
         self.agente = agente or construir_agente(llm)
         self.memoria = memoria or MemoriaConversacional(
             max_turnos=MEMORIA_MAX_TURNOS
         )
+        self.session_id = session_id
+        self.origen = origen
+        self.run_id = run_id
 
-    def _invocar(self, mensajes: list[BaseMessage]) -> dict:
+    def _invocar(
+        self, mensajes: list[BaseMessage], callbacks: list | None = None
+    ) -> dict:
         ultimo_error: Exception | None = None
+        config = {
+            "recursion_limit": AGENTE_MAX_ITERACIONES,
+            "callbacks": callbacks or [],
+        }
         for intento in range(AGENTE_REINTENTOS + 1):
             try:
-                return self.agente.invoke(
-                    {"messages": mensajes},
-                    config={"recursion_limit": AGENTE_MAX_ITERACIONES},
-                )
+                return self.agente.invoke({"messages": mensajes}, config=config)
             except Exception as exc:  # noqa: BLE001 - se traduce a ErrorAgente
                 ultimo_error = exc
+                cat = clasificar_error(exc)
+                registrar(
+                    "error",
+                    {
+                        "categoria": cat,
+                        "componente": "llm",
+                        "mensaje_masc": enmascarar_obj(str(exc)),
+                        "reintento": intento,
+                        "recuperado": False,
+                    },
+                )
                 if _reintentable(exc) and intento < AGENTE_REINTENTOS:
                     espera = 3 * (intento + 1)
                     if AGENTE_DEBUG:
@@ -424,48 +492,265 @@ class AgenteDuocUC:
         raise ErrorAgente(_mensaje_error(ultimo_error or Exception("error desconocido")))
 
     def responder(self, consulta: str) -> ResultadoAgente:
-        consulta = (consulta or "").strip()
-        if not consulta:
+        t0 = time.perf_counter()
+        trace_id = iniciar_traza(
+            session_id=self.session_id,
+            origen=self.origen,
+            run_id=self.run_id,
+        )
+
+        consulta_raw = (consulta or "").strip()
+        if not consulta_raw:
             return ResultadoAgente(
                 respuesta="Escríbeme tu consulta y te ayudo a resolverla.",
                 turnos_memoria=self.memoria.turnos(),
+                trace_id=trace_id,
             )
 
-        if len(consulta) > 4000:
-            consulta = consulta[:4000]
+        avisos_seguridad: list[dict] = []
+        resultado_turno = "ok"
+        error_cat = None
+        respuesta_final = ""
+        fuentes: list[dict] = []
+        eventos: list[dict] = []
+        borradores: list[dict] = []
+        herramientas: list[str] = []
+        manejador = ManejadorObservabilidad(trace_id=trace_id)
 
-        entrada = self.memoria.historial() + [HumanMessage(content=consulta)]
-        resultado = self._invocar(entrada)
+        try:
+            # 1. Guardrail de entrada
+            with medir_etapa("guardrail_entrada", "guardrail", trace_id=trace_id):
+                texto_seguro, conteos_pii = enmascarar(consulta_raw)
+                if conteos_pii and GUARDRAIL_PII:
+                    registrar(
+                        "seguridad",
+                        {
+                            "control": "pii",
+                            "accion": "enmascarado",
+                            "severidad": "baja",
+                            "detalle": conteos_pii,
+                        },
+                        trace_id=trace_id,
+                    )
+                    avisos_seguridad.append(
+                        {"control": "pii", "accion": "enmascarado", "conteos": conteos_pii}
+                    )
 
-        nuevos = _mensajes_nuevos(resultado.get("messages", []), entrada)
-        respuesta = _respuesta_final(nuevos) or (
-            "No pude generar una respuesta en este intento. ¿Puedes reformular "
-            "tu pregunta o darme un poco más de contexto?"
-        )
-        eventos = _extraer_eventos(nuevos)
-        fuentes = _extraer_fuentes(eventos)
-        borradores = _extraer_borradores(eventos)
-        herramientas = [
-            evento["nombre"]
-            for evento in eventos
-            if evento.get("tipo") == "herramienta"
-        ]
+                if GUARDRAIL_INYECCION != "off":
+                    analisis_iny = analizar_inyeccion(texto_seguro)
+                    if analisis_iny["severidad"] == "alta" and GUARDRAIL_INYECCION == "bloquear":
+                        registrar(
+                            "seguridad",
+                            {
+                                "control": "prompt_injection",
+                                "accion": "bloqueado",
+                                "severidad": "alta",
+                                "detalle": analisis_iny,
+                            },
+                            trace_id=trace_id,
+                        )
+                        avisos_seguridad.append(
+                            {
+                                "control": "prompt_injection",
+                                "accion": "bloqueado",
+                                "reglas": analisis_iny["reglas"],
+                            }
+                        )
+                        resultado_turno = "bloqueado_entrada"
+                        respuesta_final = MENSAJE_BLOQUEO_INYECCION
+                        return ResultadoAgente(
+                            respuesta=respuesta_final,
+                            turnos_memoria=self.memoria.turnos(),
+                            trace_id=trace_id,
+                            avisos_seguridad=avisos_seguridad,
+                            metricas={
+                                "latencia_total_ms": round((time.perf_counter() - t0) * 1000, 2),
+                                "tokens_total": 0,
+                                "n_llamadas_llm": 0,
+                            },
+                        )
+                    if analisis_iny["severidad"] in ("alta", "media"):
+                        registrar(
+                            "seguridad",
+                            {
+                                "control": "prompt_injection",
+                                "accion": "alertado",
+                                "severidad": analisis_iny["severidad"],
+                                "detalle": analisis_iny,
+                            },
+                            trace_id=trace_id,
+                        )
+                        avisos_seguridad.append(
+                            {
+                                "control": "prompt_injection",
+                                "accion": "alertado",
+                                "reglas": analisis_iny["reglas"],
+                            }
+                        )
 
-        self.memoria.agregar_usuario(consulta)
-        self.memoria.agregar_asistente(respuesta)
-        self.memoria.guardar()
+                if len(texto_seguro) > 4000:
+                    texto_seguro = texto_seguro[:4000]
 
-        if AGENTE_DEBUG:
-            print(f"[agente] herramientas={herramientas} fuentes={len(fuentes)}")
+            # 2. Historial + Mensaje de usuario
+            entrada = self.memoria.historial() + [HumanMessage(content=texto_seguro)]
 
-        return ResultadoAgente(
-            respuesta=respuesta,
-            fuentes=fuentes,
-            eventos=eventos,
-            borradores=borradores,
-            herramientas_usadas=herramientas,
-            turnos_memoria=self.memoria.turnos(),
-        )
+            # 3. Invocación con callbacks
+            resultado = self._invocar(entrada, callbacks=[manejador])
+
+            # 4. Extracción
+            nuevos = _mensajes_nuevos(resultado.get("messages", []), entrada)
+            respuesta = _respuesta_final(nuevos) or (
+                "No pude generar una respuesta en este intento. ¿Puedes reformular "
+                "tu pregunta o darme un poco más de contexto?"
+            )
+            eventos = _extraer_eventos(nuevos)
+            fuentes = _extraer_fuentes(eventos)
+            borradores = _extraer_borradores(eventos)
+            herramientas = [
+                evento["nombre"]
+                for evento in eventos
+                if evento.get("tipo") == "herramienta"
+            ]
+
+            # 5. Guardrail de salida
+            with medir_etapa("guardrail_salida", "guardrail", trace_id=trace_id):
+                if detectar_fuga_prompt(respuesta, PROMPT_SISTEMA):
+                    registrar(
+                        "seguridad",
+                        {
+                            "control": "fuga_prompt",
+                            "accion": "bloqueado",
+                            "severidad": "alta",
+                            "detalle": {"mensaje": "coincidencia de 8 shingles"},
+                        },
+                        trace_id=trace_id,
+                    )
+                    avisos_seguridad.append(
+                        {"control": "fuga_prompt", "accion": "bloqueado"}
+                    )
+                    respuesta = MENSAJE_FUGA_PROMPT
+                    resultado_turno = "bloqueado_salida"
+
+                if resultado_turno != "bloqueado_salida" and GUARDRAIL_RESPALDO != "off":
+                    verif = verificar_respaldo(
+                        respuesta, eventos, fuentes, texto_seguro
+                    )
+                    if verif["nivel"] == "grave" and GUARDRAIL_RESPALDO == "bloquear_grave":
+                        registrar(
+                            "seguridad",
+                            {
+                                "control": "respuesta_sin_respaldo",
+                                "accion": "bloqueado",
+                                "severidad": "alta",
+                                "detalle": verif,
+                            },
+                            trace_id=trace_id,
+                        )
+                        avisos_seguridad.append(
+                            {
+                                "control": "respuesta_sin_respaldo",
+                                "accion": "bloqueado",
+                                "sin_respaldo": verif["sin_respaldo"],
+                            }
+                        )
+                        respuesta = MENSAJE_SIN_RESPALDO
+                        resultado_turno = "bloqueado_salida"
+                    elif verif["nivel"] == "dudoso":
+                        registrar(
+                            "seguridad",
+                            {
+                                "control": "respuesta_sin_respaldo",
+                                "accion": "alertado",
+                                "severidad": "media",
+                                "detalle": verif,
+                            },
+                            trace_id=trace_id,
+                        )
+                        avisos_seguridad.append(
+                            {
+                                "control": "respuesta_sin_respaldo",
+                                "accion": "alertado",
+                                "sin_respaldo": verif["sin_respaldo"],
+                            }
+                        )
+
+            respuesta_final = respuesta
+
+            # 6. Memoria
+            self.memoria.agregar_usuario(texto_seguro)
+            self.memoria.agregar_asistente(respuesta_final)
+            self.memoria.guardar()
+
+            if AGENTE_DEBUG:
+                print(f"[agente] herramientas={herramientas} fuentes={len(fuentes)}")
+
+            return ResultadoAgente(
+                respuesta=respuesta_final,
+                fuentes=fuentes,
+                eventos=eventos,
+                borradores=borradores,
+                herramientas_usadas=herramientas,
+                turnos_memoria=self.memoria.turnos(),
+                trace_id=trace_id,
+                avisos_seguridad=avisos_seguridad,
+                metricas={
+                    "latencia_total_ms": round((time.perf_counter() - t0) * 1000, 2),
+                    "tokens_prompt": manejador.tokens_prompt,
+                    "tokens_completion": manejador.tokens_completion,
+                    "tokens_total": manejador.tokens_total,
+                    "tokens_estimados": manejador.tokens_estimados,
+                    "n_llamadas_llm": manejador.n_llamadas_llm,
+                },
+            )
+
+        except Exception as exc:
+            if resultado_turno == "ok":
+                resultado_turno = "error"
+                error_cat = clasificar_error(exc)
+            raise
+
+        finally:
+            latencia_total_ms = round((time.perf_counter() - t0) * 1000, 2)
+            traza = traza_actual() or {}
+            turno_frio = bool(traza.get("turno_frio", False))
+
+            hubo_retrieval = "buscar_reglamentos" in herramientas
+            abstencion = (len(fuentes) == 0) if hubo_retrieval else None
+            top1_score_val = (
+                max((float(f.get("relevancia", 0.0)) for f in fuentes), default=0.0)
+                if fuentes
+                else 0.0
+            )
+            derivacion = es_derivacion(respuesta_final)
+
+            registrar_recursos("turno", trace_id=trace_id)
+
+            consulta_masc, _ = enmascarar(consulta_raw)
+            registrar(
+                "turno",
+                {
+                    "consulta_masc": consulta_masc,
+                    "resultado": resultado_turno,
+                    "latencia_total_ms": latencia_total_ms,
+                    "turno_frio": turno_frio,
+                    "n_llamadas_llm": manejador.n_llamadas_llm,
+                    "tokens_prompt": manejador.tokens_prompt,
+                    "tokens_completion": manejador.tokens_completion,
+                    "tokens_total": manejador.tokens_total,
+                    "tokens_estimados": manejador.tokens_estimados,
+                    "herramientas": herramientas,
+                    "n_herramientas": len(herramientas),
+                    "abstencion": abstencion,
+                    "derivacion": derivacion,
+                    "fuentes": fuentes,
+                    "top1_score": top1_score_val,
+                    "respuesta_chars": len(respuesta_final),
+                    "error_categoria": error_cat,
+                    "modelo": LLM_MODEL,
+                    "turnos_memoria": self.memoria.turnos(),
+                },
+                trace_id=trace_id,
+            )
 
     def limpiar_memoria(self) -> None:
         self.memoria.limpiar()

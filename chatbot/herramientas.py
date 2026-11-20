@@ -1,5 +1,5 @@
+import time
 from datetime import date, datetime, timedelta
-from functools import lru_cache
 
 import requests
 from langchain_core.tools import tool
@@ -13,6 +13,7 @@ from chatbot.conocimiento import buscar_semantico
 from chatbot.documentos import Borrador, generar_borrador
 from chatbot.documentos import leer_borrador as _leer_borrador
 from chatbot.documentos import listar_borradores as _listar_borradores
+from observabilidad.registro import registrar
 
 _DIAS = [
     "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo",
@@ -21,6 +22,7 @@ _MESES = [
     "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
     "agosto", "septiembre", "octubre", "noviembre", "diciembre",
 ]
+_CACHE_FERIADOS: dict[int, list[dict]] = {}
 
 
 def buscar_en_base_conocimiento(
@@ -54,12 +56,30 @@ def _fecha_larga(fecha: date) -> str:
     )
 
 
-@lru_cache(maxsize=8)
 def _feriados_api(anio: int) -> tuple[list[dict], str]:
+    if anio in _CACHE_FERIADOS:
+        registrar(
+            "api_externa",
+            {
+                "servicio": "date.nager.at",
+                "anio": anio,
+                "intentos": 0,
+                "duracion_ms": 0.0,
+                "cache_hit": True,
+                "status": "ok",
+                "error": "",
+            },
+        )
+        return _CACHE_FERIADOS[anio], ""
+
     url = f"{FERIADOS_URL}/{anio}/CL"
     ultimo_error = "sin respuesta"
+    t0 = time.perf_counter()
+    status = "error_conexion"
+    intentos = 0
 
-    for _ in range(3):
+    for intento in range(1, 4):
+        intentos = intento
         try:
             respuesta = requests.get(
                 url,
@@ -69,15 +89,50 @@ def _feriados_api(anio: int) -> tuple[list[dict], str]:
             respuesta.raise_for_status()
             datos = respuesta.json()
             if not isinstance(datos, list):
-                return [], "formato inesperado de la API"
+                status = "formato"
+                ultimo_error = "formato inesperado de la API"
+                break
+            _CACHE_FERIADOS[anio] = datos
+            duracion_ms = round((time.perf_counter() - t0) * 1000, 2)
+            registrar(
+                "api_externa",
+                {
+                    "servicio": "date.nager.at",
+                    "anio": anio,
+                    "intentos": intentos,
+                    "duracion_ms": duracion_ms,
+                    "cache_hit": False,
+                    "status": "ok",
+                    "error": "",
+                },
+            )
             return datos, ""
         except requests.exceptions.Timeout:
+            status = "timeout"
             ultimo_error = "timeout"
         except requests.exceptions.RequestException as exc:
+            status = "error_conexion"
             ultimo_error = f"error de conexión: {exc}"
         except (KeyError, ValueError) as exc:
+            status = "formato"
             ultimo_error = f"formato inesperado: {exc}"
+        except Exception as exc:
+            status = "error_conexion"
+            ultimo_error = f"error de conexión: {exc}"
 
+    duracion_ms = round((time.perf_counter() - t0) * 1000, 2)
+    registrar(
+        "api_externa",
+        {
+            "servicio": "date.nager.at",
+            "anio": anio,
+            "intentos": intentos,
+            "duracion_ms": duracion_ms,
+            "cache_hit": False,
+            "status": status,
+            "error": ultimo_error,
+        },
+    )
     return [], ultimo_error
 
 

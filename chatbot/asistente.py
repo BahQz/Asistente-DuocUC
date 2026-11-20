@@ -1,3 +1,5 @@
+import uuid
+
 from chatbot.agente import AgenteDuocUC, ErrorAgente, ErrorConfiguracion
 from chatbot.memoria import crear_memoria
 
@@ -36,7 +38,12 @@ def main() -> None:
     print("Escribe 'salir' para terminar o '/ayuda' para ver los comandos.\n")
 
     try:
-        agente = AgenteDuocUC(memoria=crear_memoria())
+        session_id = uuid.uuid4().hex
+        agente = AgenteDuocUC(
+            memoria=crear_memoria(),
+            session_id=session_id,
+            origen="consola",
+        )
     except ErrorConfiguracion as exc:
         print(f"  ⚠️  {exc}")
         return
