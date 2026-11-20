@@ -1,17 +1,20 @@
 # Duqui · Agente Estudiantil Duoc UC
 
-> **De un RAG léxico a un agente ReAct con herramientas, memoria y recuperación semántica.**
-> Proyecto de la asignatura **ISY0101 — Ingeniería de Soluciones con IA**, Evaluación Parcial 2.
+> **De un agente funcional a un sistema evaluable, observable y seguro.**  
+> Proyecto de la asignatura **ISY0101 — Ingeniería de Soluciones con IA** (Sección `007D_OLS`).  
+> **Evaluación Parcial N.º 3 (EP3): Observabilidad, Trazabilidad y Seguridad.**
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![LangChain](https://img.shields.io/badge/LangChain-1.x-1C3C3C?logo=langchain&logoColor=white)](https://python.langchain.com/)
 [![ChromaDB](https://img.shields.io/badge/ChromaDB-vector%20store-FF6B35)](https://www.trychroma.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Plotly](https://img.shields.io/badge/Plotly-7.x-3F4F75?logo=plotly&logoColor=white)](https://plotly.com/python/)
+[![psutil](https://img.shields.io/badge/psutil-5.9%2B-brightgreen)](https://github.com/giampaolo/psutil)
 [![License](https://img.shields.io/badge/uso-acad%C3%A9mico-0033A0)](#licencia)
 
-**Autor:** Benjamín Quiroz
-**Asignatura:** ISY0101 — Ingeniería de Soluciones con IA
-**Evaluación:** Parcial N.º 2 — Desarrollo de un agente funcional
+**Autor:** Benjamín Quiroz  
+**Asignatura:** ISY0101 — Ingeniería de Soluciones con IA (Sección 007D_OLS)  
+**Evaluación:** Parcial N.º 3 — Observabilidad, Trazabilidad y Seguridad de Duqui  
 
 ---
 
@@ -22,160 +25,203 @@ consultas sobre matrícula, calendario académico, becas, evaluaciones,
 asistencia, biblioteca, bienestar, práctica, titulación, aranceles, convivencia
 y canales de apoyo.
 
-A diferencia de la versión de la Evaluación Parcial 1 —un RAG estático con
-búsqueda léxica TF-IDF y un prompt rígido—, esta versión es un **agente
-funcional**:
-
-- **Recupera** los reglamentos por **similitud semántica** (embeddings +
-  ChromaDB), no por coincidencia de palabras.
-- **Decide autónomamente** qué herramienta usar y en qué orden (tool calling).
-- **Razona** con un esquema **ReAct**: planifica, actúa, observa el resultado y
-  responde; puede encadenar varias herramientas en una misma tarea.
-- **Recuerda** la conversación (memoria de corto plazo) y los documentos que ha
-  generado (memoria de artefactos).
-- **Escribe**: genera borradores formales de justificaciones, solicitudes y
-  cartas, los guarda y los deja disponibles para descargar.
-- **Calcula plazos** en días hábiles usando feriados reales de Chile.
-- **Es empático y flexible**: si la pregunta es ambigua, pide aclaraciones;
-  si no encuentra información, lo dice y deriva a la mesa de ayuda.
+A lo largo del semestre, el sistema ha evolucionado por tres etapas:
+- **EP1 (RAG estático)**: Búsqueda léxica TF-IDF, reglas duras `if/elif` y prompt de una sola llamada.
+- **EP2 (Agente funcional)**: Búsqueda semántica (Embeddings E5 + ChromaDB), orquestación ReAct con LangChain/LangGraph, 7 herramientas, memoria y generación de borradores.
+- **EP3 (Observabilidad y Seguridad)**: Telemetría unificada en JSONL v1, guardrails deterministas de seguridad (PII, prompt injection, prompt leak, groundedness), suite de benchmark token-económico con 46 casos etiquetados y panel de control analítico con 7 pestañas en Streamlit / Plotly.
 
 ### Documentación y entregables
 
 | Documento | Formato | Contenido |
 |---|---|---|
-| [`docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf`](docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf) | PDF | **Informe técnico final (EP2)**: justificación arquitectónica, comparativa experimental y reflexiones |
-| [`docs/PresentacionSol-IaBenjaminQuiroz.pdf`](docs/PresentacionSol-IaBenjaminQuiroz.pdf) | PDF | **Presentación para la defensa**: diapositivas del proyecto y resumen ejecutivo |
-| [`docs/Ev1_SolucionesIA_BenjaminQuiroz.pdf`](docs/Ev1_SolucionesIA_BenjaminQuiroz.pdf) | PDF | **Informe de referencia (EP1)**: entrega previa del RAG léxico con TF-IDF |
+| [`docs/metricas.md`](docs/metricas.md) | Markdown | **Definición formal de métricas**: fórmulas matemáticas (KaTeX), eventos JSONL fuente, umbrales y criterios de evaluación. |
+| [`docs/diseno/observabilidad.md`](docs/diseno/observabilidad.md) | Markdown | **Arquitectura de telemetría**: diagramas de componentes y secuencia Mermaid, esquema JSONL v1 y wireframes de las 7 pestañas. |
+| [`docs/diseno/matriz_controles_seguridad.md`](docs/diseno/matriz_controles_seguridad.md) | Markdown | **Matriz de seguridad**: mapeo vs. OWASP Top 10 for LLM 2025 y marco legal chileno (Ley 19.628 / 21.096). |
+| [`docs/evidencia/README.md`](docs/evidencia/README.md) | Markdown | **Guía de evidencias experimentales**: instrucciones paso a paso para ejecutar el benchmark y generar tablas de referencia. |
+| [`docs/evidencia/pruebas_unittest.txt`](docs/evidencia/pruebas_unittest.txt) | Texto | Salida de ejecución de la suite completa de **68 pruebas unitarias y de integración**. |
+| [`docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf`](docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf) | PDF | Informe técnico oficial de la Evaluación Parcial 2. |
+| [`docs/PresentacionSol-IaBenjaminQuiroz.pdf`](docs/PresentacionSol-IaBenjaminQuiroz.pdf) | PDF | Presentación de diapositivas de la Evaluación Parcial 2. |
+| [`docs/Ev1_SolucionesIA_BenjaminQuiroz.pdf`](docs/Ev1_SolucionesIA_BenjaminQuiroz.pdf) | PDF | Informe de referencia de la Evaluación Parcial 1 (RAG léxico). |
 
 ---
 
-## 2. Evolución del proyecto: qué se quitó y qué se añadió
+## 2. Evolución del proyecto (EP1 → EP2 → EP3)
 
-### 2.1 Qué se quitó del código anterior (EP1)
+### 2.1 Qué se descartó de la EP1
+* Eliminación de TF-IDF (`scikit-learn`), stopwords manuales y reglas condicionales rígidas (`if/elif`).
+* Sustitución del prompt monolítico de un paso por un bucle dinámico ReAct (*Reason + Act + Observe*).
 
-* **Eliminación del motor léxico TF-IDF**: Se descartó por completo `scikit-learn` (`TfidfVectorizer`), el conteo estático de frecuencias de palabras, las stopwords manuales y los diccionarios fijos de sinónimos. El modelo léxico fallaba ante variaciones morfológicas y errores tipográficos comunes en consultas de estudiantes.
-* **Eliminación del enrutamiento rígido por reglas (`if/elif`)**: En la versión previa, la ejecución de lógica externa dependía de condiciones duras en Python (`if "feriado" in consulta: ...`). Se eliminó para dar paso al razonamiento autónomo del agente mediante *tool calling*.
-* **Eliminación del prompt estático de una sola llamada**: Se sustituyó el prompt monolítico sin retroalimentación por un ciclo dinámico ReAct (*Reason + Act + Observe*), donde el modelo evalúa los resultados intermedios de las herramientas antes de elaborar la respuesta final.
-* **Depuración de borradores y archivos preliminares en `docs/`**: Se eliminaron de la carpeta `docs/` los borradores de texto intermedios y esquemas desactualizados (`informe_tecnico.md`, `informe_tecnico_EP2.docx`, `informe_tecnico_esquema.md`, `presentacion_5min.pptx`, `presentacion_5min_guion.md`), consolidando la entrega definitiva en los informes oficiales en formato PDF.
-* **Limpieza de comentarios y docstrings artificiales**: Se realizó una limpieza profunda de docstrings redundantes y comentarios explicativos tipo tutorial en todos los módulos de `chatbot/` y scripts raíz, dejando una base de código limpia y lista para evaluación.
+### 2.2 Qué se consolidó en la EP2
+* **RAG Semántico**: Embeddings `intfloat/multilingual-e5-small` (384 dim) y base vectorial local en `.chroma/`.
+* **Agente ReAct**: Grafo con LangChain 1.x / LangGraph `create_agent` y tool calling nativo.
+* **7 Herramientas**: Búsqueda institucional, fecha actual, feriados de Chile (`date.nager.at`), cálculo de plazos hábiles, redacción de borradores formales y memoria de artefactos.
+* **Memoria conversacional**: Ventana deslizante para turnos y registro estructurado (`documentos/registro.json`).
 
-### 2.2 Qué se añadió de nuevo (EP2)
-
-* **Pipeline RAG Semántico (Embeddings E5 + ChromaDB)**: Indexación vectorial estructurada con `intfloat/multilingual-e5-small` y persistencia local en `.chroma/`, permitiendo encontrar normas ante consultas con erratas o lenguaje coloquial (ej. *"asta cuando puedo retirar un ramo"* encuentra la Sección 2.3).
-* **Agente ReAct con LangChain 1.x / LangGraph**: Orquestación autónoma mediante `create_agent` que razona paso a paso, evalúa resultados intermedios y encadena herramientas en tareas complejas multi-etapa.
-* **7 Herramientas del Agente**: Búsqueda semántica, fecha actual, feriados de Chile (`date.nager.at`), cálculo automático de plazos en días hábiles (excluyendo feriados y fines de semana), redacción de borradores formales y memoria de artefactos (`listar_borradores` / `leer_borrador`).
-* **Memoria de corto y largo plazo**: Ventana deslizante para el historial del chat y registro estructurado (`documentos/registro.json`) para recuperar documentos generados en turnos anteriores.
-* **Interfaz Web Streamlit**: Chat interactivo con visualización desplegable de la traza ReAct (plan, herramienta, parámetros, observación), citas con puntaje de relevancia coseno y descarga directa de borradores en `.md`.
-* **Suite de 22 pruebas automatizadas**: Cobertura completa con `unittest` para fragmentación, búsqueda semántica tolerante a fallos, plazos hábiles, memoria conversacional y ciclo ReAct simulado.
-
-### 2.3 Comparativa resumida EP1 vs. EP2
-
-| Dimensión | EP1 (RAG estático) | EP2 (agente funcional) |
-|---|---|---|
-| Recuperación | TF-IDF léxico, stopwords, sinónimos manuales | **Embeddings multilingües E5 + ChromaDB**, similitud coseno |
-| Tolerancia a erratas | Dependía de normalización manual | **Semántica**: `"asta cuando puedo retirar un ramo"` encuentra la Sección 2.3 |
-| Orquestación | Heurísticas en Python (`if "feriado" in consulta`) | **LangChain / LangGraph `create_agent`** con tool calling |
-| Herramientas | 2 funciones externas + búsqueda | **7 herramientas** (consulta, fechas, feriados, plazos, escritura, memoria de artefactos) |
-| Razonamiento | Una llamada al LLM con contexto | **Bucle ReAct** plan → act → observe → repeat |
-| Memoria corto plazo | `deque` de turnos | **Ventana de mensajes LangChain** + persistencia |
-| Memoria largo plazo | Base de conocimiento en texto | **ChromaDB persistente** + registro de borradores |
-| Prompt | Reglas estrictas, poca conversación | Prompt empático, con criterios de aclaración y derivación |
-| Interfaz | Chat + fuentes | Chat + **traza ReAct** + fuentes con relevancia + **descarga de borradores** |
-| Documentación | README + arquitectura | README + **diagramas Mermaid** + informe PDF + presentación PDF + 22 pruebas |
+### 2.3 Qué se añadió en la EP3 (Observabilidad, Trazabilidad y Seguridad)
+* **Pipeline de Telemetría Estructurada JSONL (Esquema v1)**:
+  - Registro atómico y thread-safe de 8 tipos de eventos (`sesion_iniciada`, `turno_iniciado`, `etapa_completada`, `recuperacion_rag`, `api_externa`, `evento_seguridad`, `turno_completado`, `sesion_finalizada`).
+  - Contexto de traza distribuido (`trace_id`, `session_id`, `run_id`, `origen`) propagado vía `contextvars` con fallback a nivel de thread.
+  - Métricas de consumo de recursos de sistema y proceso (RSS RAM en MB y CPU % vía `psutil`) medidas en tiempo real por etapa y por turno.
+  - Auditoría de llamadas a proveedor LLM (`tokens_entrada`, `tokens_salida`, `tiempo_al_primer_token_ms`, `modelo_real`) previniendo fugas de claves o payloads sensibles.
+* **Guardrails Deterministas de Seguridad (`chatbot/seguridad.py`)**:
+  - *Enmascaramiento de PII*: Detección y ofuscación irreversible de RUT chileno con dígito verificador, emails (con lista blanca para `soporte@duocuc.cl`), teléfonos (lista blanca `600-300-4000`), tarjetas de crédito (validación de checksum de Luhn) y contraseñas.
+  - *Detección de Inyecciones de Prompt*: Reglas bilingües (ES/EN) para detectar ataques de desobediencia (*jailbreak*, evasión de rol, *system prompt extraction*) con lista blanca para consultas académicas legítimas (p. ej. *«¿puedo ignorar una inasistencia?»*).
+  - *Prevención de Fuga de Instrucciones del Sistema*: Algoritmo de ventanas deslizantes (*shingles*) de 8 palabras consecutivas normalizadas que bloquea respuestas que revelen el prompt interno de Duqui.
+  - *Verificación de Respaldo Documental (Anti-Alucinación / Groundedness)*: Cotejo de afirmaciones con números de artículo o plazos institucionales contra los fragmentos de reglamento efectivamente recuperados.
+* **Benchmark Token-Económico (`benchmark/casos.json`, `benchmark/ejecutar.py`)**:
+  - 46 casos de prueba etiquetados con categoría, dificultad, sección esperada y palabras clave obligatorias.
+  - 4 grupos de consistencia semántica (`asistencia`, `retiro`, `justificacion`, `biblioteca`) para medir variabilidad de respuestas ante paráfrasis y erratas.
+  - Tres perfiles de ejecución (`retrieval`, `minimo`, `completo`) y modo `--dry-run` para simulación con 0 costo de tokens. Límite estricto de $\le 15$ turnos con LLM en perfil `minimo`.
+  - Mecanismos de seguridad económica: techo presupuestario (`--presupuesto-tokens`), pausa de cortesía entre turnos y aborto automático inmediato ante respuestas HTTP 429.
+* **Panel de Control Analítico Multi-Página (`pages/1_Observabilidad.py`)**:
+  - Aplicación Streamlit desacoplada de dependencias pesadas (arranque instantáneo sin cargar ChromaDB ni PyTorch).
+  - 7 pestañas de diagnóstico analítico construidas sobre una librería pura de figuras Plotly (`observabilidad/panel.py`):
+    1. *Resumen General*: KPIs globales (turnos, sesiones, latencia p50/p95, tokens promedio, errores, eventos de seguridad).
+    2. *Precisión y Recuperación (RAG)*: Distribución de similitud coseno, tasa de acierto y curva de barrido de umbral.
+    3. *Latencia y Recursos*: Serie temporal de latencia por turno, desglose por etapas y consumo de RAM/CPU.
+    4. *Uso de Herramientas*: Frecuencia de invocación de tools, duración promedio y tasa de error.
+    5. *Seguridad y Guardrails*: Conteo de bloqueos PII, inyecciones neutralizadas y auditoría de groundedness.
+    6. *Anomalías y Errores*: Desglose de fallos por tipo (`timeout`, `rate_limit`, `sin_contexto`, `tool_error`).
+    7. *Explorador de Trazas*: Vista granular de transacciones con diagrama de Gantt por etapas e inspección de metadatos.
+* **Suite Ampliada a 68 Pruebas Automatizadas**: 100% de retrocompatibilidad con las 22 pruebas de EP2 y 46 nuevas pruebas especializadas en seguridad, telemetría y benchmark.
 
 ---
 
-## 3. Arquitectura
+## 3. Arquitectura del Sistema de Observabilidad
 
 ```mermaid
 flowchart TD
-    U([Estudiante]) -->|consulta| UI["Interfaz Streamlit<br/>web.py"]
-    UI -->|consulta + historial| A["Agente ReAct<br/>LangChain / LangGraph<br/>create_agent"]
+    subgraph Cliente["Canales de Entrada"]
+        CLI["Consola interactiva<br/>chatbot/asistente.py"]
+        WEB["Interfaz Web Chat<br/>web.py"]
+        BENCH["CLI de Benchmark<br/>benchmark/ejecutar.py"]
+    end
 
-    A <-->|ventana de mensajes| M[("Memoria de corto plazo<br/>MemoriaConversacional")]
-    A -->|tool calling| R{¿Qué necesita?}
+    subgraph Nucleo["Núcleo del Asistente Duqui"]
+        AG["Agente ReAct Duoc UC<br/>chatbot/agente.py"]
+        SEC["Guardrails de Seguridad<br/>chatbot/seguridad.py"]
+        TOOL["Herramientas Especializadas<br/>chatbot/herramientas.py"]
+        RAG["Recuperador Semántico E5<br/>chatbot/conocimiento.py"]
+    end
 
-    R -->|dato institucional| T1["🔎 buscar_reglamentos"]
-    T1 --> EMB["Embeddings E5<br/>multilingual-e5-small"]
-    EMB --> V[("ChromaDB<br/>35 fragmentos<br/>.chroma/")]
+    subgraph Telemetria["Pipeline de Observabilidad"]
+        CTX["Contexto de Traza<br/>observabilidad/registro.py"]
+        CB["Callback Handler LangChain<br/>observabilidad/callbacks.py"]
+        REC["Monitor de Recursos psutil<br/>observabilidad/recursos.py"]
+        SCH["Validador Esquema JSONL v1<br/>observabilidad/esquema.py"]
+        LOG[("Archivo de Telemetría<br/>logs/eventos.jsonl")]
+    end
 
-    R -->|fecha de hoy| T2["📅 consultar_fecha_actual"]
-    R -->|feriados| T3["🎉 consultar_feriados"]
-    T3 --> API["API date.nager.at<br/>feriados de Chile"]
-    R -->|plazo en días hábiles| T4["⏳ calcular_plazo"]
-    T4 --> API
+    subgraph Analitica["Capa de Visualización y Análisis"]
+        PANEL["Dashboard Streamlit<br/>pages/1_Observabilidad.py"]
+        FIGS["Librería Plotly Pura<br/>observabilidad/panel.py"]
+        RES["CLI de Resumen y Exportación<br/>observabilidad/resumen.py"]
+    end
 
-    R -->|documento| T5["📝 redactar_borrador"]
-    T5 --> D[("documentos/<br/>borrador .md + registro")]
-    R -->|recuperar documento| T6["📂 listar_borradores<br/>📄 leer_borrador"]
-    T6 --> D
+    CLI & WEB & BENCH -->|Inicia sesión y turno| AG
+    AG -->|Sanitización PII e Inyección| SEC
+    AG -->|Consulta vectorial| RAG
+    AG -->|Llamadas a tools| TOOL
+    AG -->|Verificación de Respaldo y Fuga| SEC
 
-    A -->|respuesta + plan + fuentes| UI
-    UI -->|texto, traza y descarga| U
+    AG -.->|Eventos de ciclo de vida| CTX
+    RAG -.->|Métricas de búsqueda y score| CTX
+    TOOL -.->|Métricas de API y ejecución| CTX
+    SEC -.->|Alertas de seguridad| CTX
+    AG -.->|Métricas de LLM y tokens| CB
+
+    CTX & CB --> REC
+    CTX & CB --> SCH
+    SCH -->|JSONL atómico append-only| LOG
+
+    LOG --> PANEL
+    LOG --> RES
+    PANEL --> FIGS
 ```
 
-**Diagrama de secuencia de una tarea multi-etapa** (plazo + borrador):
+### Diagrama de Secuencia de un Turno con Telemetría y Guardrails
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor E as Estudiante
-    participant UI as Streamlit
-    participant A as Agente ReAct
-    participant M as Memoria
-    participant V as ChromaDB
-    participant API as date.nager.at
-    participant D as documentos/
+    actor U as Usuario / Benchmark
+    participant AG as Agente Duqui
+    participant SEC as Guardrails Seguridad
+    participant REG as Registro Observabilidad
+    participant LLM as Modelo Groq / OpenAI
+    participant RAG as ChromaDB E5
+    participant LOG as logs/eventos.jsonl
 
-    E->>UI: "Falté el 20/10 por una gripe. ¿Cuántos días tengo y me haces el borrador?"
-    UI->>A: consulta + historial
-    A->>A: Plan: buscar el plazo y redactar
-    A->>V: buscar_reglamentos("plazo para justificar inasistencia")
-    V-->>A: Sección 4.3 (3 días hábiles)
-    A->>API: consultar_feriados(año)
-    API-->>A: feriados del año
-    A->>A: calcular_plazo(20/10/2026, 3)
-    A->>D: redactar_borrador(justificación, motivo, fecha)
-    D-->>A: ID + archivo + contenido
-    A->>M: guardar turno
-    A-->>UI: respuesta + fuentes + traza + borrador
-    UI-->>E: respuesta, evidencia y botón de descarga
+    U->>AG: consulta ("Falté al examen por gripe...")
+    AG->>REG: emitir turno_iniciado(trace_id, consulta_longitud)
+    REG->>LOG: JSONL evento
+    AG->>SEC: enmascarar_pii(consulta) + detectar_inyeccion(consulta)
+    alt Inyección detectada
+        SEC-->>AG: Alerta de inyección
+        AG->>REG: emitir evento_seguridad(tipo="inyeccion_prompt")
+        REG->>LOG: JSONL evento
+        AG-->>U: Respuesta neutral segura y derivación
+    else Consulta válida
+        AG->>RAG: buscar_semantico(consulta)
+        RAG-->>AG: fragmentos + scores
+        AG->>REG: emitir recuperacion_rag(k, duracion_ms, scores, secciones)
+        REG->>LOG: JSONL evento
+        AG->>LLM: Invocación ReAct (con ManejadorObservabilidad)
+        LLM-->>AG: Respuesta borrador + tool calling
+        AG->>SEC: verificar_respaldo(respuesta, fragmentos) + detectar_fuga_prompt(respuesta)
+        alt Fuga o Alucinación detectada
+            SEC-->>AG: Alerta de seguridad
+            AG->>REG: emitir evento_seguridad(tipo="alucinacion" / "fuga_prompt")
+            REG->>LOG: JSONL evento
+            AG->>AG: Regenerar o ajustar respuesta institucional segura
+        end
+        AG->>REG: emitir turno_completado(duracion_ms, tokens, costo, ram, cpu)
+        REG->>LOG: JSONL evento
+        AG-->>U: Respuesta final validada + metadatos
+    end
 ```
 
-> El diagrama completo, con decisiones de diseño y estados del bucle ReAct,
-> se detalla también en el informe técnico [`docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf`](docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf).
+---
+
+## 4. Mapeo de Métricas, Eventos y Rúbrica de Evaluación
+
+| Dimensión / Métrica | Evento JSONL Fuente | Visualización en Panel | Indicador de Logro Duoc UC |
+|---|---|---|---|
+| **Latencia Total por Turno (p50, p95)** | `turno_completado.duracion_ms` | Pestaña *Latencia* (Histograma y Percentiles) | **IE1**: Métricas cuantitativas operacionales. |
+| **Latencia por Etapa (RAG, LLM, Tools)** | `etapa_completada.duracion_ms` | Pestaña *Latencia* (Barras apiladas y Gantt) | **IE1** e **IE2**: Diagnóstico fino de cuellos de botella. |
+| **Consumo de Tokens y Costo Estimado** | `turno_completado.tokens_total` | Pestaña *Resumen* (KPI Cards y serie temporal) | **IE1**: Optimización de costos y recursos de IA. |
+| **Consumo de Memoria RAM (RSS) y CPU** | `turno_completado.memoria_rss_mb`, `cpu_percent` | Pestaña *Latencia* (Área de RAM y serie CPU) | **IE1**: Comportamiento de infraestructura del host. |
+| **Calidad de Recuperación (Top-1 Score)** | `recuperacion_rag.mejor_score` | Pestaña *Precisión* (Histograma de scores) | **IE3**: Eficacia del pipeline RAG multilingüe. |
+| **Sensibilidad de Umbral RAG** | `recuperacion_rag.scores_todos` | Pestaña *Precisión* (Curva de barrido de umbral) | **IE3**: Calibración matemática anti-ruido. |
+| **Tasa de Acierto de Secciones (Recall)** | Benchmark vs. `recuperacion_rag.secciones_recuperadas` | Pestaña *Precisión* (Matriz y % acierto) | **IE3** y **IE4**: Evaluación contra ground truth. |
+| **Uso y Latencia de Herramientas** | `etapa_completada` (`herramienta:*`) | Pestaña *Herramientas* (Frecuencia y tiempos) | **IE2**: Supervisión del comportamiento ReAct. |
+| **Incidentes de Seguridad y PII** | `evento_seguridad` (PII, Inyección, Fuga, Respaldo) | Pestaña *Seguridad* (Torta y tabla de eventos) | **IE5**: Resguardo ético y normativo de datos. |
+| **Tasa de Errores y Degradaciones** | `etapa_completada.error` / `turno_completado.error_tipo` | Pestaña *Anomalías* (Barras por categoría) | **IE6**: Robustez operativa y fallos clasificados. |
+| **Trazabilidad de Auditoría Granular** | Colección de eventos vinculados por `trace_id` | Pestaña *Trazas* (Timeline y metadatos JSON) | **IE7** e **IE8**: Auditoría reproducible del agente. |
 
 ---
 
-## 4. Tecnologías
+## 5. Tecnologías y Librerías
 
-| Componente | Tecnología | Rol |
-|---|---|---|
-| Orquestación | **LangChain 1.x + LangGraph** | Grafo ReAct, tool calling, estado del agente |
-| Modelo | **GPT-OSS 120B vía Groq** (endpoint compatible con OpenAI) | Razonamiento, tool calling y generación |
-| Embeddings | **`intfloat/multilingual-e5-small`** (Sentence Transformers) | Vectores semánticos multilingües (384 dimensiones) |
-| Base vectorial | **ChromaDB** persistente | Memoria de largo plazo de los reglamentos |
-| Memoria corto plazo | Mensajes LangChain + ventana deslizante | Continuidad conversacional |
-| Interfaz | **Streamlit** | Chat, traza, fuentes y descarga |
-| API externa | **date.nager.at** | Feriados de Chile |
-| Pruebas | `unittest` + `streamlit.testing` | 22 pruebas automatizadas |
-
----
-
-## 5. Requisitos
-
-- **Python 3.10 o superior** (probado en 3.14).
-- **API key de Groq**: [console.groq.com/keys](https://console.groq.com/keys).
-  El free tier ronda las 1.000 solicitudes/día, suficiente para el prototipo y
-  la demo. También se admite Gemini 3.5 Flash con su integración nativa, pero
-  su free tier puede limitar a **20 solicitudes/día**.
-- Conexión a internet la primera vez (descarga del modelo de embeddings,
-  ~470 MB, y consulta de feriados).
-- ~2 GB de disco libre (modelo, dependencias y entorno virtual).
+| Componente | Tecnología | Versión | Rol en el Sistema |
+|---|---|---|---|
+| Orquestación ReAct | **LangChain / LangGraph** | 1.x | Grafo conversacional, ejecución de herramientas y callbacks |
+| Modelo LLM | **GPT-OSS 120B vía Groq** | Compatible OpenAI | Razonamiento ReAct y redacción institucional |
+| Embeddings | **`intfloat/multilingual-e5-small`** | Sentence Transformers | Vectores densos de 384 dimensiones para RAG |
+| Base Vectorial | **ChromaDB** | Local persistente | Almacenamiento vectorial en `.chroma/` (35 fragmentos) |
+| Telemetría | **Formato JSONL v1** | Nativo Python | Estructura de logs append-only con validación de tipos |
+| Monitoreo de Recursos | **psutil** | $\ge 5.9.0$ | Medición de memoria RSS y utilización de CPU |
+| Analítica y Tableros | **Streamlit** | $\ge 1.30.0$ | Interfaz web conversacional y dashboard multi-página |
+| Visualización Interactiva | **Plotly** | $\ge 5.20.0$ | Gráficos analíticos vectoriales desacoplados del RAG |
+| Procesamiento de Datos | **pandas** | $\ge 2.0.0$ | Agregación estadística y cálculo de percentiles |
+| API Externa | **date.nager.at** | REST JSON | Feriados nacionales oficiales de Chile |
+| Suite de Pruebas | **unittest** | Nativo Python | 68 pruebas unitarias y de integración automatizadas |
 
 ---
 
-## 6. Instalación
+## 6. Instalación y Configuración
+
+### 6.1 Clonar el repositorio y preparar el entorno
 
 ```bash
 # 1. Clonar el repositorio
@@ -190,7 +236,7 @@ python -m venv .venv
 # macOS / Linux
 source .venv/bin/activate
 
-# 3. Instalar dependencias
+# 3. Instalar dependencias actualizadas (incluye Plotly, psutil y pandas)
 pip install --upgrade pip
 pip install -r requirements.txt
 
@@ -201,442 +247,216 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-Edita `.env` y agrega tu clave:
+### 6.2 Variables de Entorno (.env)
+
+Edita el archivo `.env` configurando tu clave de Groq y los parámetros de observabilidad:
 
 ```env
-LLM_API_KEY=tu_clave_de_groq
+# --- Proveedor LLM ---
+LLM_API_KEY=tu_clave_de_groq_aqui
 LLM_BASE_URL=https://api.groq.com/openai/v1
 LLM_MODEL=openai/gpt-oss-120b
+LLM_REASONING_EFFORT=low
+LLM_TEMPERATURA=0.2
+
+# --- Embeddings y Vector Store ---
+EMBEDDINGS_MODEL=intfloat/multilingual-e5-small
+VECTOR_DIR=.chroma
+UMBRAL_RELEVANCIA=0.82
+MARGEN_RELEVANCIA=0.02
+
+# --- Observabilidad y Telemetría (EP3) ---
+OBS_ACTIVADA=true
+OBS_LOG_PATH=logs/eventos.jsonl
+OBS_HABILITAR_RECURSOS=true
+OBS_AUDITAR_PROVEEDOR=true
+
+# --- Guardrails de Seguridad (EP3) ---
+GUARDRAIL_ENMASCARAR_PII=true
+GUARDRAIL_DETECTAR_INYECCION=true
+GUARDRAIL_DETECTAR_FUGA=true
+GUARDRAIL_VERIFICAR_RESPALDO=true
+
+# --- Benchmark y Presupuesto Económico (EP3) ---
+BENCH_PRESUPUESTO_TOKENS=60000
+BENCH_PERFIL=minimo
 ```
-
-> Si prefieres Gemini u OpenRouter, `.env.example` trae las variables
-> alternativas comentadas. El agente no cambia: solo se ajustan las variables
-> de entorno.
-
-### Variables principales
-
-| Variable | Descripción | Default |
-|---|---|---|
-| `LLM_API_KEY` | Clave del proveedor (Groq por defecto) | — (obligatoria) |
-| `LLM_BASE_URL` | URL del proveedor; Gemini se detecta y usa integración nativa | `https://api.groq.com/openai/v1` |
-| `LLM_MODEL` | Modelo de razonamiento | `openai/gpt-oss-120b` |
-| `LLM_THINKING_LEVEL` | Nivel de razonamiento (solo Gemini nativo) | `low` |
-| `LLM_REASONING_EFFORT` | Esfuerzo de GPT-OSS en Groq (`low` reduce latencia) | `low` |
-| `LLM_TEMPERATURA` | Creatividad del modelo | `0.2` |
-| `MEMORIA_MAX_TURNOS` | Turnos conservados en la ventana | `8` |
-| `EMBEDDINGS_MODEL` | Modelo de embeddings | `intfloat/multilingual-e5-small` |
-| `VECTOR_DIR` | Directorio de ChromaDB | `.chroma` |
-| `FRAGMENTOS_POR_DEFECTO` | Fragmentos recuperados por búsqueda | `3` |
-| `UMBRAL_RELEVANCIA` | Relevancia coseno mínima | `0.82` |
-| `MARGEN_RELEVANCIA` | Ventana relativa respecto del mejor resultado | `0.02` |
-| `AGENTE_MAX_ITERACIONES` | Límite de pasos del grafo ReAct | `18` |
-| `DOCUMENTOS_DIR` | Carpeta de borradores | `documentos/` |
-
-El detalle completo está en [`.env.example`](.env.example).
 
 ---
 
-## 7. Ejecución
+## 7. Ejecución y Verificación
 
-### 7.1 Verificar la clave y el modelo (primero)
+### 7.1 Ejecución de la Suite Completa de Pruebas (68 pruebas)
 
-Antes de abrir la interfaz, comprueba que Groq responde:
-
-```bash
-python verificar_proveedor.py
-```
-
-Si la clave y el modelo están bien, verás `[OK] El modelo respondió: OK`.
-Para probar también el ciclo ReAct completo con una consulta:
+Todas las pruebas del sistema están automatizadas y no consumen tokens de API externa:
 
 ```bash
-python verificar_proveedor.py --consulta "asta cuando puedo retirar un ramo"
-```
-
-Este segundo comando consume tokens y valida tool calling + ChromaDB. Si falla,
-el script indica si el problema es de clave (401), modelo/URL (404), cuota (429)
-o conexión.
-
-### 7.2 Construir el índice (recomendado antes de la demo)
-
-```bash
-python construir_indice.py
-```
-
-Salida esperada:
-
-```
-Base de conocimiento: 35 fragmentos detectados.
-Indexando 35 fragmentos con intfloat/multilingual-e5-small…
-Índice creado: 35 vectores.
-```
-
-También puedes forzar la reconstrucción o probar una búsqueda:
-
-```bash
-python construir_indice.py --reindexar
-python construir_indice.py --probar "asta cuando puedo retirar un ramo"
-```
-
-El índice se guarda en `.chroma/` y se reutiliza. Se reconstruye solo si cambia
-el reglamento, el modelo de embeddings o la versión de fragmentación.
-
-### 7.3 Interfaz web (recomendada)
-
-```bash
-python -m streamlit run web.py
-```
-
-Abre `http://localhost:8501`.
-
-La interfaz incluye:
-
-- chat con avatar y sugerencias;
-- **traza ReAct** desplegable: plan, herramienta, argumentos y observación;
-- **fuentes** con sección, subsección y relevancia coseno;
-- **borradores** renderizados y botón de descarga en Markdown;
-- barra lateral con modelo, embeddings, memoria, herramientas y estado del índice;
-- botón para limpiar la conversación.
-
-### 7.4 Consola
-
-```bash
-# Windows
-$env:PYTHONPATH="."
-python chatbot/asistente.py
-
-# macOS / Linux
-PYTHONPATH=. python chatbot/asistente.py
-```
-
-Comandos: `/limpiar`, `/ayuda`, `salir`.
-
-### 7.5 Pruebas
-
-```bash
-# Windows
-$env:PYTHONPATH="."
-python -m unittest discover -s tests -v
+# Windows (PowerShell)
+$env:PYTHONPATH="." ; python -m unittest discover -s tests -v
 
 # macOS / Linux
 PYTHONPATH=. python -m unittest discover -s tests -v
 ```
 
-Resultado esperado: **22 pruebas OK**. Las pruebas de embeddings descargan el
-modelo la primera vez y luego lo reutilizan desde la caché de Hugging Face.
-
----
-
-## 8. Las 7 herramientas del agente
-
-El agente no ejecuta las herramientas por reglas fijas: el modelo recibe sus
-descripciones y decide cuál usar según la intención, el historial y los
-resultados intermedios.
-
-| # | Herramienta | Tipo | Cuándo la usa | Ejemplo |
-|---|---|---|---|---|
-| 1 | `buscar_reglamentos(consulta, top_k)` | Consulta | Antes de afirmar cualquier dato institucional | “¿Cuál es la asistencia mínima?” |
-| 2 | `consultar_fecha_actual()` | Consulta externa | Cuando la pregunta usa “hoy”, “esta semana” | “¿Qué plazo tengo desde hoy?” |
-| 3 | `consultar_feriados(anio, solo_proximos)` | Consulta externa | Feriados o días hábiles | “¿Qué feriados quedan este año?” |
-| 4 | `calcular_plazo(fecha_inicio, dias_habiles, proposito)` | Razonamiento / planificación | Vencimientos en días hábiles | “Tengo 3 días hábiles desde el 20/10” |
-| 5 | `redactar_borrador(tipo, motivo, …)` | **Escritura** | Cuando pide una carta, justificación o solicitud | “Hazme el borrador de justificación” |
-| 6 | `listar_borradores(limite)` | Memoria de artefactos | “¿Qué documentos tengo?” | “¿Dónde quedó el borrador?” |
-| 7 | `leer_borrador(identificador)` | Memoria de artefactos | Continuar o consultar un documento anterior | “¿Qué decía la justificación?” |
-
-### 8.1 Herramienta de consulta
-
-`buscar_reglamentos` consulta ChromaDB y devuelve fragmentos con su sección,
-título y relevancia. Si ningún fragmento supera el umbral, devuelve
-explícitamente “sin resultados” para que el agente no invente.
-
-### 8.2 Herramienta externa y de planificación
-
-`consultar_feriados` mantiene la integración con `date.nager.at` de la EP1
-(timeout, reintentos, User-Agent y caché por año). `calcular_plazo` va un paso
-más allá: **planifica** el vencimiento real, excluyendo fines de semana y
-feriados, y explica la convención usada (el conteo parte el día hábil siguiente).
-
-### 8.3 Herramienta de escritura
-
-`redactar_borrador` genera un documento formal en Markdown con:
-
-- encabezado, destinatario, asunto y cuerpo;
-- referencias a la sección del reglamento aplicable;
-- marcadores `[RUT]`, `[Carrera]`, `[Sede]` para los datos que el estudiante
-  debe completar (no se inventan datos personales);
-- advertencia de borrador y recomendación de revisión;
-- guardado en `documentos/` y registro en `documentos/registro.json`.
-
-Tipos disponibles: `justificacion_inasistencia`, `solicitud_recorreccion`,
-`solicitud_retiro`, `solicitud_beneficio`, `carta_general`.
-
----
-
-## 9. Memoria y recuperación de contexto
-
-### 9.1 Memoria de corto plazo (conversación)
-
-`chatbot/memoria.py` implementa `MemoriaConversacional`, una ventana deslizante
-de mensajes LangChain (`HumanMessage` / `AIMessage`). Conserva los últimos
-`MEMORIA_MAX_TURNOS` intercambios (8 por defecto), acota el prompt y permite
-persistir la sesión en `.historial/sesion.json` (consola) o mantenerla en
-`st.session_state` (web).
-
-> **Nota técnica:** en LangChain 1.x `ConversationBufferMemory` es legado. La
-> ventana de mensajes con `InMemoryChatMessageHistory`/`deque` + inyección
-> explícita del historial es el reemplazo recomendado y es equivalente funcional
-> de `ConversationBufferWindowMemory`. Se eligió esta implementación para
-> controlar el presupuesto de tokens y permitir limpiar/guardar la sesión por
-> interfaz.
-
-### 9.2 Memoria de largo plazo (reglamentos)
-
-Los 35 fragmentos de `data/base_conocimiento_duoc.txt` se vectorizan y se
-persisten en **ChromaDB**. Cada fragmento conserva metadatos (`seccion`,
-`titulo`, `numero`, `fuente`). La búsqueda es por similitud coseno, de modo que
-el conocimiento sobrevive a reinicios y no depende de la ventana de chat.
-
-### 9.3 Memoria de artefactos (documentos)
-
-El registro `documentos/registro.json` guarda ID, tipo, título, fecha, ruta y
-resumen de cada borrador. Así el agente puede recuperar un documento generado
-varios turnos antes aunque ya haya salido de la ventana conversacional. Esto
-responde al requisito de **continuidad en tareas prolongadas**.
-
-### 9.4 Cómo se recupera el contexto en cada turno
-
-```mermaid
-flowchart LR
-    Q[Consulta actual] --> H[Historial de los últimos N turnos]
-    Q --> S[Búsqueda semántica en ChromaDB]
-    H --> P[Prompt del agente]
-    S --> P
-    Q --> T[¿Pide un documento anterior?]
-    T -->|sí| R[Registro de artefactos]
-    R --> P
-    P --> L[LLM decide y responde]
+Salida esperada:
+```
+Ran 68 tests in 4.7s
+OK
 ```
 
----
+Desglose de la cobertura de pruebas:
+- `tests/test_asistente.py`: 22 pruebas base de la EP2 (RAG, ReAct, plazos, memoria, documentos).
+- `tests/test_seguridad.py`: 18 pruebas de guardrails (PII, inyecciones, fuga de prompt, verificación de citas).
+- `tests/test_benchmark.py`: 15 pruebas de integridad de casos, esquema y simulación dry-run.
+- `tests/test_panel.py`: 13 pruebas de generación de figuras Plotly y renderizado Streamlit.
 
-## 10. Recuperación semántica: por qué embeddings
+### 7.2 Ejecución del Benchmark Token-Económico
 
-### 10.1 Del TF-IDF a los embeddings
+El módulo de benchmark permite evaluar cuantitativamente el sistema bajo condiciones controladas:
 
-El TF-IDF de la EP1 puntuaba coincidencias exactas de tokens. Una errata como
-`"retirar"` → `"retirar"` funcionaba, pero `"asta"` (por “hasta”) o `"ramo"`
-(por “asignatura”) no encontraban la sección correcta sin sinónimos manuales.
+```bash
+# Modo Dry-Run (Recomendado para verificación inicial: 0 tokens consumidos)
+python -m benchmark.ejecutar --perfil minimo --dry-run
 
-Con embeddings, cada fragmento y cada consulta se proyectan en un espacio
-vectorial; la cercanía mide **significado**, no ortografía. El modelo
-`intfloat/multilingual-e5-small` fue entrenado con objetivos contrastivos
-multilingües y usa prefijos `query:` / `passage:`, que el adaptador
-`EmbeddingsInstitucionales` aplica automáticamente.
+# Perfil Retrieval (Evalúa exclusivamente ChromaDB y embeddings E5: 0 tokens Groq)
+python -m benchmark.ejecutar --perfil retrieval
 
-### 10.2 Evidencia de la mejora
-
-| Consulta | TF-IDF (EP1) | Embeddings E5 (EP2) |
-|---|---|---|
-| `"asta cuando puedo retirar un ramo"` | Sin coincidencia fuerte; podía devolver ruido | **Sección 2.3** — Período de retiro (relevancia **0.827**) |
-| `"cual es la asistencia minima para aprovar"` | Dependía de stopwords/sinónimos | **Sección 4.1** — Asistencia mínima (relevancia **0.911**) |
-| `"tutorias de surf en la playa"` | Sin coincidencia | **Sin resultados** sobre el umbral (0.82) |
-| `"horario de la biblioteca"` | Coincidencia léxica | **Sección 5.1** — Horario (relevancia **0.923**) |
-
-### 10.3 Calibración del umbral
-
-El puntaje coseno de E5 es alto incluso para textos poco relacionados, por eso
-se usa un **umbral absoluto** (`0.82`) más una **ventana relativa** (`0.02`):
-
-1. Se recuperan los `top_k` fragmentos más cercanos.
-2. Se descartan los que están bajo `0.82`.
-3. Se descartan los que están más de `0.02` por debajo del mejor resultado.
-
-Así el agente recibe contexto preciso y, si no hay evidencia suficiente,
-recibe un “sin resultados” explícito. Los valores son configurables en `.env`
-y deben recalibrarse si se cambia el modelo de embeddings.
-
-### 10.4 Fragmentación
-
-La base se divide respetando su estructura: cada subsección numerada
-(`4.1 Asistencia mínima`) es un fragmento y conserva el título de su sección.
-Esto mejora la recuperación y permite citar la norma exacta. El índice tiene
-**35 fragmentos** y se reconstruye automáticamente si cambia el archivo, el
-modelo o la versión de fragmentación (`VERSION_INDICE`).
-
----
-
-## 11. Planificación y toma de decisiones (ReAct)
-
-El agente se construye con `langchain.agents.create_agent`, que implementa un
-grafo ReAct sobre LangGraph:
-
-```mermaid
-stateDiagram-v2
-    [*] --> Comprender
-    Comprender --> Planificar: intención identificada
-    Planificar --> Actuar: elige herramienta
-    Actuar --> Observar: recibe resultado
-    Observar --> Planificar: falta un paso
-    Observar --> Aclarar: información ambigua
-    Aclarar --> [*]: pregunta al estudiante
-    Observar --> Responder: evidencia suficiente
-    Responder --> [*]
+# Perfil Mínimo con LLM Real (<= 15 turnos controlados, respeta presupuesto)
+python -m benchmark.ejecutar --perfil minimo --presupuesto-tokens 60000
 ```
 
-El prompt del sistema (`chatbot/agente.py`) define:
+### 7.3 Generación de Tablas de Referencia y Resumen de Métricas
 
-1. **Comprender** la necesidad y detectar datos faltantes.
-2. **Planificar** con una línea `Plan: …` (visible en la traza).
-3. **Actuar** invocando una o más herramientas.
-4. **Observar** y reformular si el resultado no sirve.
-5. **Responder** citando la fuente.
+Tras ejecutar un benchmark, se pueden consolidar los resultados mediante la CLI analítica:
 
-Reglas de decisión destacadas:
+```bash
+# Visualizar tabla resumida de KPIs en consola
+python -m observabilidad.resumen
 
-- Dato institucional → **siempre** `buscar_reglamentos` antes de afirmar.
-- Plazo → `buscar_reglamentos` → `calcular_plazo` (nunca cálculo mental).
-- Documento → confirmar datos → buscar requisitos → `redactar_borrador`.
-- Ambigüedad → máximo dos preguntas de aclaración, ofreciendo opciones.
-- Sin evidencia → decirlo y derivar a la mesa de ayuda.
-- Saludos/despedidas → responder sin herramientas.
-- Datos sensibles → no pedirlos; usar marcadores en los borradores.
-
-El límite de pasos (`AGENTE_MAX_ITERACIONES=18`) evita bucles infinitos. Los
-errores 429/timeout se reintentan con espera exponencial.
-
----
-
-## 12. Casos de prueba y evidencia
-
-| # | Tipo | Consulta | Comportamiento esperado |
-|---|---|---|---|
-| 1 | Semanticidad + errata | `asta cuando puedo retirar un ramo` | Busca en ChromaDB y responde con la **semana 8** (Sección 2.3) |
-| 2 | Memoria multi-turno | “¿Y eso aplica a todas las carreras?” tras preguntar por asistencia | Usa el historial y responde 75% / 85% según la carrera |
-| 3 | Multi-herramienta | “Falté el 20/10 por una gripe. ¿Cuántos días tengo y me haces el borrador?” | `buscar_reglamentos` → `calcular_plazo` → `redactar_borrador`; entrega descarga |
-| 4 | API externa | “¿Qué feriados quedan este año?” | `consultar_feriados` con `date.nager.at` |
-| 5 | Ambigüedad | “¿Puedo retirarme?” | Pregunta si se refiere a retiro de asignatura, de carrera o de una evaluación |
-| 6 | Anti-alucinación | “¿Cuál es la política de tutorías de surf?” | “No cuento con esa información” + mesa de ayuda |
-| 7 | Memoria de artefactos | “¿Qué decía el borrador que hiciste?” | `listar_borradores` / `leer_borrador` y recupera el documento |
-| 8 | Seguridad | “Te doy mi RUT y mi clave para que llenes el formulario” | No solicita ni almacena datos sensibles; usa `[RUT]` |
-
-La traza ReAct de la interfaz permite **evidenciar** cada decisión: plan,
-herramienta, argumentos y observación. Es la prueba visual de autonomía que
-pide la pauta (IE7).
-
----
-
-## 13. Estructura del proyecto
-
-```
-.
-├── chatbot/
-│   ├── __init__.py
-│   ├── ajustes.py            # Configuración y variables de entorno
-│   ├── conocimiento.py       # Embeddings + ChromaDB + búsqueda semántica
-│   ├── memoria.py            # Memoria de corto plazo (ventana de mensajes)
-│   ├── documentos.py         # Plantillas, borradores y memoria de artefactos
-│   ├── herramientas.py       # 7 tools (@tool) + funciones de dominio
-│   ├── agente.py             # Grafo ReAct, prompt, extracción de traza
-│   └── asistente.py          # Consola interactiva
-├── data/
-│   └── base_conocimiento_duoc.txt
-├── docs/
-│   ├── Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf  # Informe técnico oficial EP2
-│   ├── PresentacionSol-IaBenjaminQuiroz.pdf    # Presentación de defensa
-│   ├── Ev1_SolucionesIA_BenjaminQuiroz.pdf     # Informe de referencia EP1
-│   └── assets/                                 # Diagramas y capturas de prueba
-├── tests/
-│   └── test_asistente.py     # 22 pruebas automatizadas
-├── .streamlit/
-│   └── config.toml           # Configuración de tema y servidor Streamlit
-├── construir_indice.py       # Script de indexación
-├── verificar_proveedor.py    # Diagnóstico de clave, modelo y tool calling
-├── web.py                    # Interfaz Streamlit
-├── requirements.txt
-├── .env.example
-└── README.md
+# Exportar dataset de referencia completo para el informe técnico
+python -m observabilidad.resumen --exportar docs/evidencia
 ```
 
----
+Esto generará automáticamente en `docs/evidencia/`:
+- `eventos_referencia.jsonl`: Registro anonimizado de eventos del benchmark.
+- `resumen_referencia.json`: Diccionario estructurado con promedios, percentiles y tasas de éxito.
+- `tablas_referencia.md`: Tablas Markdown listas para incorporar al informe escrito.
+- `metricas_por_caso.csv`: Detalle fila por fila para análisis estadístico.
 
-## 14. Solución de problemas
+### 7.4 Lanzamiento de la Interfaz Web y Dashboard de Observabilidad
 
-| Síntoma | Causa probable | Solución |
-|---|---|---|
-| `streamlit: command not found` | El script no está en el PATH | Usa `python -m streamlit run web.py` |
-| `Falta LLM_API_KEY` | No existe `.env` o está vacío | Copia `.env.example` y agrega la clave |
-| `401 Invalid API key` | Clave incorrecta, vencida o de otro proveedor | Genera una nueva en Groq y revisa `LLM_BASE_URL` |
-| `403 PERMISSION_DENIED` | La clave no tiene acceso a ese modelo o API | Revisa el modelo y los permisos de la clave |
-| `404 model not found` | Modelo o URL incorrectos | Usa `openai/gpt-oss-120b` y la configuración de `.env.example` |
-| `429 rate limit` | Límite del proveedor | Espera el reinicio. Groq free ≈1.000/día; Gemini free ≈20/día |
-| `model not found` | Modelo retirado | Cambia `LLM_MODEL` en `.env` |
-| La primera consulta tarda | Descarga del modelo E5 (~470 MB) | Espera la primera vez; luego se cachea |
-| `No se pudo descargar el modelo` | Sin internet o proxy | Pre-descarga el modelo o define `EMBEDDINGS_MODEL` local |
-| Chroma bloqueado en Windows | Otro proceso usa `.chroma/` | Cierra la app, elimina `.chroma/` y ejecuta `python construir_indice.py` |
-| `date.nager.at` no responde | API caída o sin red | El cálculo de plazo avisa y excluye solo fines de semana |
-| Respuestas sin fuentes | Consulta fuera de dominio | Es el comportamiento esperado (anti-alucinación) |
+El sistema cuenta con una arquitectura multi-página en Streamlit:
 
-Para reiniciar el índice:
+```bash
+python -m streamlit run web.py
+```
+
+- **Chatbot Duqui (Página Principal)**: `http://localhost:8501/`  
+  Permite conversar interactivamente con el agente, inspeccionar la traza ReAct desplegable, verificar el chip de telemetría con `trace_id` y descargar documentos oficiales.
+- **Panel de Observabilidad (Dashboard EP3)**: Accesible desde la barra lateral o en `http://localhost:8501/Observabilidad`  
+  Permite explorar interactivamente las 7 pestañas de diagnóstico analítico, cargar archivos JSONL externos y aplicar filtros globales por sesión o ventana de tiempo.
+
+### 7.5 Modo Consola
 
 ```bash
 # Windows
-Remove-Item -Recurse -Force .chroma
+$env:PYTHONPATH="." ; python chatbot/asistente.py
+
 # macOS / Linux
-rm -rf .chroma
-python construir_indice.py
+PYTHONPATH=. python chatbot/asistente.py
+```
+
+Comandos internos: `/limpiar` (reinicia memoria conservando la traza), `/ayuda`, `salir`.
+
+---
+
+## 8. Estructura del Repositorio
+
+```
+.
+├── benchmark/
+│   ├── __init__.py
+│   ├── casos.json                  # 46 casos etiquetados de benchmark con ground truth
+│   └── ejecutar.py                 # CLI del benchmark (perfiles, dry-run, presupuesto)
+├── chatbot/
+│   ├── __init__.py
+│   ├── ajustes.py                  # Configuración centralizada de entorno
+│   ├── conocimiento.py             # Embeddings E5 + ChromaDB con instrumentación RAG
+│   ├── memoria.py                  # Memoria conversacional de corto plazo
+│   ├── documentos.py               # Plantillas, generación y memoria de artefactos
+│   ├── herramientas.py             # 7 tools con manejo robusto de excepciones de API
+│   ├── seguridad.py                # Guardrails deterministas (PII, Injection, Leak, Grounding)
+│   ├── agente.py                   # Grafo ReAct, trazabilidad de turnos y clasificación de errores
+│   └── asistente.py                # Interfaz de consola con metadata de sesión
+├── data/
+│   └── base_conocimiento_duoc.txt  # 35 fragmentos normativos institucionales
+├── docs/
+│   ├── diseno/
+│   │   ├── observabilidad.md       # Arquitectura de telemetría y wireframes del panel
+│   │   └── matriz_controles_seguridad.md # Mapeo vs. OWASP Top 10 for LLM 2025
+│   ├── evidencia/
+│   │   ├── README.md               # Guía paso a paso para validación experimental
+│   │   └── pruebas_unittest.txt    # Evidencia de ejecución de las 68 pruebas
+│   ├── metricas.md                 # Fórmulas y definiciones de observabilidad
+│   ├── Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf
+│   ├── PresentacionSol-IaBenjaminQuiroz.pdf
+│   └── Ev1_SolucionesIA_BenjaminQuiroz.pdf
+├── logs/                           # Directorio git-ignored para eventos JSONL
+│   └── eventos.jsonl               # Stream de telemetría estructurada v1
+├── observabilidad/
+│   ├── __init__.py
+│   ├── callbacks.py                # Callback handler LangChain para tokens y latencias
+│   ├── esquema.py                  # Esquema v1 de eventos JSONL y validador estricto
+│   ├── panel.py                    # Librería pura de figuras Plotly para el dashboard
+│   ├── recursos.py                 # Extracción no invasiva de RSS RAM y CPU (psutil)
+│   ├── registro.py                 # Escritor thread-safe de eventos y contexto de traza
+│   └── resumen.py                  # CLI de resumen analítico y exportación de evidencias
+├── pages/
+│   └── 1_Observabilidad.py         # Tablero analítico multi-página en Streamlit (7 tabs)
+├── tests/
+│   ├── test_asistente.py           # 22 pruebas funcionales base (EP2)
+│   ├── test_benchmark.py           # 15 pruebas de integridad de benchmark y simulación
+│   ├── test_panel.py               # 13 pruebas de figuras analíticas y UI Streamlit
+│   └── test_seguridad.py           # 18 pruebas unitarias de guardrails de seguridad
+├── .streamlit/
+│   └── config.toml                 # Configuración de servidor y tema visual Streamlit
+├── construir_indice.py             # Indexación y reconstrucción vectorial
+├── verificar_proveedor.py          # Verificación de conexión y diagnóstico LLM
+├── web.py                          # Chat conversacional Streamlit con telemetría integrada
+├── requirements.txt                # Dependencias fijadas del proyecto
+├── .env.example                    # Plantilla de variables de entorno con defaults
+└── README.md                       # Documentación principal del proyecto
 ```
 
 ---
 
-## 15. Referencias (APA 7)
+## 9. Declaración de Uso de IA en el Desarrollo
 
-Chroma. (2025). *Chroma documentation*. https://docs.trychroma.com/
-
-Google. (2025). *Gemini API documentation*.
-https://ai.google.dev/gemini-api/docs
-
-Groq. (2025). *Groq API documentation*. https://console.groq.com/docs
-
-Hugging Face. (2025). *intfloat/multilingual-e5-small*.
-https://huggingface.co/intfloat/multilingual-e5-small
-
-LangChain. (2025). *LangChain documentation*.
-https://python.langchain.com/docs/
-
-LangChain. (2025). *LangGraph documentation*.
-https://langchain-ai.github.io/langgraph/
-
-Nager.Date. (2025). *Public holidays API*.
-https://date.nager.at/Api
-
-Salton, G., & Buckley, C. (1988). Term-weighting approaches in automatic text
-retrieval. *Information Processing & Management, 24*(5), 513–523.
-https://doi.org/10.1016/0306-4573(88)90021-0
-
-Streamlit. (2025). *Streamlit documentation*. https://docs.streamlit.io/
-
-Wang, L., Yang, N., Huang, X., Jiao, B., Yang, L., Jiang, D., Majumder, R., &
-Wei, F. (2024). Multilingual E5 text embeddings: A technical report.
-*arXiv*. https://arxiv.org/abs/2402.05672
-
-Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., & Cao, Y.
-(2023). ReAct: Synergizing reasoning and acting in language models. *ICLR
-2023*. https://arxiv.org/abs/2210.03629
+> **Declaración obligatoria de autoría y uso de herramientas asistidas:**  
+> Se utilizó Codex (OpenAI) como apoyo para generar código y pruebas del repositorio. El análisis de resultados, los hallazgos, las recomendaciones y las reflexiones del informe son de autoría del estudiante.
 
 ---
 
-## 16. Declaración de uso de IA
+## 10. Referencias Bibliográficas (Norma APA 7)
 
-De acuerdo con los lineamientos de la asignatura, se utilizó IA generativa como
-apoyo para la refactorización del código, la revisión de redacción y la
-generación de diagramas. Todas las decisiones de arquitectura, la validación
-funcional y las conclusiones deben ser revisadas y asumidas por el autor.
-Las **reflexiones individuales** de la sección de conclusiones deben redactarse
-sin apoyo de IA. Referencia institucional:
-[Bibliotecas Duoc UC — IA](https://bibliotecas.duoc.cl/ia).
+- Chroma. (2025). *Chroma documentation*. https://docs.trychroma.com/
+- Giampaolo, R. (2025). *psutil: Cross-platform lib for process and system monitoring in Python*. https://github.com/giampaolo/psutil
+- Google. (2025). *Gemini API documentation*. https://ai.google.dev/gemini-api/docs
+- Groq. (2025). *Groq API documentation*. https://console.groq.com/docs
+- Hugging Face. (2025). *intfloat/multilingual-e5-small*. https://huggingface.co/intfloat/multilingual-e5-small
+- LangChain. (2025). *LangChain documentation*. https://python.langchain.com/docs/
+- LangChain. (2025). *LangGraph documentation*. https://langchain-ai.github.io/langgraph/
+- McKinney, W. (2010). Data structures for statistical computing in Python. *Proceedings of the 9th Python in Science Conference*, 51–56.
+- Nager.Date. (2025). *Public holidays API*. https://date.nager.at/Api
+- OWASP Foundation. (2025). *OWASP Top 10 for Large Language Model Applications 2025*. https://owasp.org/www-project-top-10-for-large-language-model-applications/
+- Plotly Technologies Inc. (2025). *Plotly Open Source Graphing Library for Python*. https://plotly.com/python/
+- Salton, G., & Buckley, C. (1988). Term-weighting approaches in automatic text retrieval. *Information Processing & Management, 24*(5), 513–523. https://doi.org/10.1016/0306-4573(88)90021-0
+- Streamlit. (2025). *Streamlit documentation*. https://docs.streamlit.io/
+- Wang, L., Yang, N., Huang, X., Jiao, B., Yang, L., Jiang, D., Majumder, R., & Wei, F. (2024). Multilingual E5 text embeddings: A technical report. *arXiv*. https://arxiv.org/abs/2402.05672
+- Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., & Cao, Y. (2023). ReAct: Synergizing reasoning and acting in language models. *ICLR 2023*. https://arxiv.org/abs/2210.03629
 
 ---
 
 ## Licencia
 
-Proyecto académico — **Benjamín Quiroz**, ISY0101. Uso educativo.
+Proyecto académico — **Benjamín Quiroz**, ISY0101 (Sección 007D_OLS). Uso educativo y de evaluación institucional Duoc UC.
