@@ -21,6 +21,9 @@ __pycache__/
 # Borradores generados por la herramienta de escritura
 documentos/
 
+# Observabilidad (EP3)
+logs/
+
 # Sistema operativo / editor
 .DS_Store
 .idea/

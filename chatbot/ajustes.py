@@ -48,3 +48,22 @@ FERIADOS_TIMEOUT = int(os.getenv("FERIADOS_TIMEOUT", "15"))
 AGENTE_MAX_ITERACIONES = int(os.getenv("AGENTE_MAX_ITERACIONES", "18"))
 AGENTE_REINTENTOS = int(os.getenv("AGENTE_REINTENTOS", "2"))
 AGENTE_DEBUG = os.getenv("AGENTE_DEBUG", "0").lower() in ("1", "true", "si", "sí")
+
+# --- Observabilidad (EP3) ---
+OBS_ACTIVA = os.getenv("OBS_ACTIVA", "1").lower() in ("1", "true", "si", "sí")
+OBS_DIR = Path(os.getenv("OBS_DIR", str(PROYECTO_RAIZ / "logs")))
+OBS_TRUNCAR_CHARS = int(os.getenv("OBS_TRUNCAR_CHARS", "300"))
+OBS_ZONA_GRIS = float(os.getenv("OBS_ZONA_GRIS", "0.03"))
+
+# --- Guardrails de seguridad (EP3) ---
+GUARDRAIL_PII = os.getenv("GUARDRAIL_PII", "1").lower() in ("1", "true", "si", "sí")
+GUARDRAIL_INYECCION = os.getenv("GUARDRAIL_INYECCION", "bloquear")
+GUARDRAIL_RESPALDO = os.getenv("GUARDRAIL_RESPALDO", "bloquear_grave")
+
+# --- Benchmark (EP3) ---
+BENCH_PRESUPUESTO_TOKENS = int(os.getenv("BENCH_PRESUPUESTO_TOKENS", "150000"))
+BENCH_MAX_TURNOS_LLM = int(os.getenv("BENCH_MAX_TURNOS_LLM", "15"))
+BENCH_PAUSA_SEG = float(os.getenv("BENCH_PAUSA_SEG", "2"))
+BENCH_TOKENS_POR_TURNO_ESTIMADO = int(
+    os.getenv("BENCH_TOKENS_POR_TURNO_ESTIMADO", "8000")
+)
