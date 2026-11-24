@@ -61,6 +61,14 @@ class TestBenchmarkCasos(unittest.TestCase):
             f"El perfil mínimo supera los 15 turnos con LLM: {turnos_llm}",
         )
 
+    def test_perfil_retrieval_incluye_todos_los_casos_sin_llm(self):
+        estimacion = estimar_presupuesto(self.casos, "retrieval")
+
+        self.assertEqual(estimacion["n_casos"], len(self.casos))
+        self.assertEqual(estimacion["casos_filtrados"], self.casos)
+        self.assertEqual(estimacion["turnos_llm"], 0)
+        self.assertEqual(estimacion["tokens_estimados"], 0)
+
     def test_al_menos_cuatro_grupos_de_consistencia(self):
         grupos = {
             c.get("grupo_consistencia")

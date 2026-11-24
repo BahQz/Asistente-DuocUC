@@ -24,6 +24,21 @@ FRASES_DERIVACION = (
     "direccion de escuela",
 )
 
+CATEGORIAS_EVALUACION_RETRIEVAL = {
+    "normal",
+    "errata_sinonimo",
+    "jerga",
+    "multi_etapa",
+    "seguimiento",
+    "fuera_de_dominio",
+}
+
+
+def es_caso_retrieval(caso: dict[str, Any]) -> bool:
+    """True si el caso está etiquetado para evaluar recuperación RAG."""
+    categoria = caso.get("categoria")
+    return categoria is None or categoria in CATEGORIAS_EVALUACION_RETRIEVAL
+
 
 def es_derivacion(texto: str) -> bool:
     """Verifica si una respuesta contiene derivación explícita a canales oficiales."""
@@ -88,6 +103,7 @@ def precision_at_1(casos_evaluados: list[dict[str, Any]]) -> float:
     """Precision@1: proporción de casos donde top1_numero está en seccion_esperada."""
     evaluables = [
         c for c in casos_evaluados
+        if es_caso_retrieval(c)
         if c.get("esperado", {}).get("seccion_esperada")
     ]
     if not evaluables:
@@ -106,6 +122,7 @@ def hit_at_k(casos_evaluados: list[dict[str, Any]]) -> float:
     """Hit@k: proporción donde alguna sección esperada apareció en los candidatos recuperados."""
     evaluables = [
         c for c in casos_evaluados
+        if es_caso_retrieval(c)
         if c.get("esperado", {}).get("seccion_esperada")
     ]
     if not evaluables:
@@ -117,10 +134,17 @@ def hit_at_k(casos_evaluados: list[dict[str, Any]]) -> float:
 
 
 def matriz_abstencion(casos_evaluados: list[dict[str, Any]]) -> dict[str, Any]:
-    """Calcula la matriz de confusión sobre abstención y riesgos de alucinación."""
+    """Calcula la matriz de abstención para casos etiquetados como evaluación RAG."""
     tp = fp = tn = fn = 0
     for c in casos_evaluados:
-        esperado_abs = bool(c.get("esperado", {}).get("debe_abstenerse"))
+        if not es_caso_retrieval(c):
+            continue
+        esperado = c.get("esperado", {})
+        # Los casos con bloqueo esperado pertenecen a la evaluación de seguridad,
+        # no a la clasificación de abstención del recuperador.
+        if esperado.get("esperado_bloqueo") is not None:
+            continue
+        esperado_abs = bool(esperado.get("debe_abstenerse"))
         observado_abs = c.get("observado", {}).get("decision") == "abstencion"
 
         if esperado_abs and observado_abs:
@@ -181,10 +205,16 @@ def consistencia_por_grupo(casos_evaluados: list[dict[str, Any]]) -> dict[str, A
         std_score = round(math.sqrt(varianza), 4)
 
         # Consistencia de respuesta (datos clave)
-        datos_clave_ok_count = sum(
-            1 for c in casos if c.get("observado", {}).get("datos_clave_ok", True)
+        datos_clave_evaluados = [
+            c.get("observado", {}).get("datos_clave_ok")
+            for c in casos
+            if isinstance(c.get("observado", {}).get("datos_clave_ok"), bool)
+        ]
+        consistencia_respuesta = (
+            round(sum(datos_clave_evaluados) / len(datos_clave_evaluados), 4)
+            if datos_clave_evaluados
+            else None
         )
-        consistencia_respuesta = round(datos_clave_ok_count / len(casos), 4)
 
         resumen[nombre_grupo] = {
             "n_casos": len(casos),

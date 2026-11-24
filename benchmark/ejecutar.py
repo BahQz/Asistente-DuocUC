@@ -30,8 +30,14 @@ from observabilidad.metricas import (
     hit_at_k,
     matriz_abstencion,
     precision_at_1,
+    es_caso_retrieval,
 )
-from observabilidad.registro import iniciar_traza, registrar, traza_actual
+from observabilidad.registro import (
+    iniciar_traza,
+    limpiar_traza,
+    registrar,
+    traza_actual,
+)
 
 
 def generar_run_id() -> str:
@@ -48,7 +54,7 @@ def cargar_casos(ruta: Path) -> dict[str, Any]:
 def estimar_presupuesto(casos: list[dict[str, Any]], perfil: str) -> dict[str, Any]:
     casos_filtrados = [
         c for c in casos
-        if perfil == "completo" or c.get("perfil") == "minimo"
+        if perfil in ("completo", "retrieval") or c.get("perfil") == "minimo"
     ]
 
     turnos_llm = 0
@@ -97,6 +103,8 @@ def ejecutar_benchmark(
     print(f"  Tokens LLM estimados:   ~{tokens_estimados:,} tokens (presupuesto: {presupuesto_tokens:,})")
     print(f"  Pausa entre llamadas:   {pausa_seg:.1f} s")
     print(f"  Dataset validado:       {datos_casos.get('validado_por_humano', False)}")
+    if not datos_casos.get("validado_por_humano", False):
+        print("  ADVERTENCIA: resultados preliminares; valida manualmente las etiquetas antes de citarlos.")
     print("-" * 66)
 
     if dry_run:
@@ -138,8 +146,20 @@ def ejecutar_benchmark(
 
             print(f"  [{idx:02d}/{len(casos_a_ejecutar):02d}] Caso {caso_id} ({caso.get('categoria')})... ", end="", flush=True)
 
-            # Capa 1: Retrieval semántico (0 tokens)
-            retrieval_res = buscar_semantico_detallado(consulta)
+            # Cada consulta de benchmark recibe su propia traza. Así los eventos
+            # de retrieval quedan correlacionados con su resultado por caso.
+            trace_id = iniciar_traza(
+                session_id=f"bench_{run_id}_{caso_id}",
+                origen="benchmark",
+                run_id=run_id,
+            )
+            try:
+                # Capa 1: Retrieval semántico (0 tokens)
+                retrieval_res = buscar_semantico_detallado(consulta)
+                info_traza = traza_actual() or {}
+                turno_frio = bool(info_traza.get("turno_frio"))
+            finally:
+                limpiar_traza()
             candidatos = retrieval_res.candidatos
             top1_cand = candidatos[0] if candidatos else {}
             top1_numero = str(top1_cand.get("numero", ""))
@@ -151,7 +171,11 @@ def ejecutar_benchmark(
                 for c in candidatos
             ) if seccion_esp else False
 
-            abstencion_correcta = (retrieval_res.decision == "abstencion") if debe_abstenerse else (retrieval_res.decision == "respuesta")
+            abstencion_correcta = (
+                (retrieval_res.decision == "abstencion")
+                if debe_abstenerse
+                else (retrieval_res.decision == "respuesta")
+            ) if es_caso_retrieval(caso) else None
 
             # Capa 2: Seguridad de entrada
             iny = analizar_inyeccion(consulta)
@@ -160,7 +184,7 @@ def ejecutar_benchmark(
             # Capa 3: Ejecución LLM si el perfil lo requiere y no está bloqueado
             herramientas_usadas: list[str] = []
             orden_correcto = True
-            datos_clave_ok = True
+            datos_clave_ok: bool | None = True
             resultado_turno = "ok"
             tokens_caso = 0
             latencia_caso_ms = retrieval_res.total_ms
@@ -228,6 +252,10 @@ def ejecutar_benchmark(
                             break
 
                 time.sleep(pausa_seg)
+            elif perfil == "retrieval":
+                # En este perfil no se genera respuesta: no hay datos para medir
+                # consistencia de respuesta y no debe reportarse como un acierto.
+                datos_clave_ok = None
 
             caso_observado = {
                 "top1_numero": top1_numero,
@@ -243,6 +271,7 @@ def ejecutar_benchmark(
                 "resultado_turno": resultado_turno,
                 "tokens_total": tokens_caso,
                 "latencia_total_ms": latencia_caso_ms,
+                "turno_frio": turno_frio,
             }
 
             caso_resultado = {
@@ -251,6 +280,9 @@ def ejecutar_benchmark(
                 "grupo_consistencia": caso.get("grupo_consistencia"),
                 "perfil": perfil,
                 "capa": "retrieval" if perfil == "retrieval" else "llm",
+                "dataset_validado_por_humano": bool(
+                    datos_casos.get("validado_por_humano", False)
+                ),
                 "esperado": {
                     "seccion_esperada": seccion_esp,
                     "debe_abstenerse": debe_abstenerse,
@@ -264,7 +296,12 @@ def ejecutar_benchmark(
             resultados_casos.append(caso_resultado)
 
             # Registrar evento benchmark_caso
-            registrar("benchmark_caso", caso_resultado, run_id=run_id)
+            registrar(
+                "benchmark_caso",
+                caso_resultado,
+                trace_id=trace_id,
+                run_id=run_id,
+            )
 
             estado_str = "OK" if (acierto_top1 or debe_abstenerse or bloqueo_real) else "REVISAR"
             print(f"{estado_str} (top1={top1_numero or 'n/a'} score={top1_score:.3f} tokens={tokens_caso})")
@@ -287,11 +324,29 @@ def ejecutar_benchmark(
     cons_grupo = consistencia_por_grupo(resultados_casos)
     latencias = [c["observado"]["latencia_total_ms"] for c in resultados_casos]
     stats_lat = calcular_percentiles(latencias)
+    latencias_frias = [
+        c["observado"]["latencia_total_ms"]
+        for c in resultados_casos
+        if c["observado"].get("turno_frio")
+    ]
+    latencias_calientes = [
+        c["observado"]["latencia_total_ms"]
+        for c in resultados_casos
+        if not c["observado"].get("turno_frio")
+    ]
 
     resumen_data = {
         "run_id": run_id,
         "perfil": perfil,
         "fecha": datetime.now(timezone.utc).isoformat(),
+        "dataset_validado_por_humano": bool(
+            datos_casos.get("validado_por_humano", False)
+        ),
+        "estado_evidencia": (
+            "validada"
+            if datos_casos.get("validado_por_humano", False)
+            else "preliminar_no_validada"
+        ),
         "abortado_por": abortado_por,
         "total_casos_evaluados": len(resultados_casos),
         "turnos_llm_ejecutados": turnos_llm_ejecutados,
@@ -302,6 +357,8 @@ def ejecutar_benchmark(
             "matriz_abstencion": mat_abs,
             "consistencia_grupos": cons_grupo,
             "latencia_ms": stats_lat,
+            "latencia_turno_frio_ms": calcular_percentiles(latencias_frias),
+            "latencia_turnos_calientes_ms": calcular_percentiles(latencias_calientes),
         },
     }
 
@@ -313,7 +370,7 @@ def ejecutar_benchmark(
         with open(ruta_csv, "w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
             writer.writerow([
-                "caso_id", "categoria", "grupo_consistencia",
+                "caso_id", "categoria", "grupo_consistencia", "turno_frio",
                 "seccion_esperada", "debe_abstenerse",
                 "top1_numero", "top1_score", "decision",
                 "acierto_top1", "hit_topk", "abstencion_correcta",
@@ -324,6 +381,7 @@ def ejecutar_benchmark(
                 esp = r["esperado"]
                 writer.writerow([
                     r["caso_id"], r["categoria"], r.get("grupo_consistencia", ""),
+                    obs.get("turno_frio", False),
                     "|".join(esp.get("seccion_esperada", [])), esp.get("debe_abstenerse", False),
                     obs.get("top1_numero", ""), obs.get("top1_score", 0.0), obs.get("decision", ""),
                     obs.get("acierto_top1", False), obs.get("hit_topk", False), obs.get("abstencion_correcta", False),

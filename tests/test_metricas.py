@@ -64,6 +64,29 @@ class TestMetricas(unittest.TestCase):
         self.assertAlmostEqual(precision_at_1(casos), 1 / 3, places=3)
         self.assertAlmostEqual(hit_at_k(casos), 2 / 3, places=3)
 
+    def test_metricas_retrieval_excluyen_categorias_ajenas_a_rag(self):
+        casos = [
+            {
+                "categoria": "normal",
+                "esperado": {"seccion_esperada": ["4.1"], "debe_abstenerse": False},
+                "observado": {"top1_numero": "4.1", "hit_topk": True, "decision": "respuesta"},
+            },
+            {
+                "categoria": "api_externa",
+                "esperado": {"seccion_esperada": ["9.3"], "debe_abstenerse": False},
+                "observado": {"top1_numero": "1.1", "hit_topk": False, "decision": "abstencion"},
+            },
+            {
+                "categoria": "seguridad_pii",
+                "esperado": {"seccion_esperada": ["9.1"], "debe_abstenerse": False},
+                "observado": {"top1_numero": "2.1", "hit_topk": False, "decision": "respuesta"},
+            },
+        ]
+
+        self.assertEqual(precision_at_1(casos), 1.0)
+        self.assertEqual(hit_at_k(casos), 1.0)
+        self.assertEqual(matriz_abstencion(casos)["fp"], 0)
+
     def test_matriz_abstencion(self):
         casos = [
             # TP: debía abstenerse y se abstuvo
@@ -82,6 +105,27 @@ class TestMetricas(unittest.TestCase):
         self.assertEqual(mat["fn"], 1)
         self.assertEqual(mat["tasa_abstencion_correcta"], 0.5)
         self.assertEqual(mat["tasa_falsos_rechazos"], 0.5)
+
+    def test_matriz_abstencion_excluye_bloqueos_que_no_son_retrieval(self):
+        casos = [
+            {
+                "esperado": {"debe_abstenerse": True, "esperado_bloqueo": None},
+                "observado": {"decision": "abstencion"},
+            },
+            {
+                "esperado": {
+                    "debe_abstenerse": True,
+                    "esperado_bloqueo": "bloqueado_entrada",
+                },
+                "observado": {"decision": "respuesta"},
+            },
+        ]
+
+        mat = matriz_abstencion(casos)
+
+        self.assertEqual(mat["tp"], 1)
+        self.assertEqual(mat["fn"], 0)
+        self.assertEqual(mat["tasa_abstencion_correcta"], 1.0)
 
     def test_consistencia_por_grupo(self):
         casos = [
@@ -119,6 +163,22 @@ class TestMetricas(unittest.TestCase):
         self.assertEqual(res["asistencia"]["consistencia_decision"], 1.0)
         self.assertAlmostEqual(res["asistencia"]["consistencia_respuesta"], 2 / 3, places=2)
         self.assertLess(res["asistencia"]["std_score"], 0.05)
+
+    def test_consistencia_respuesta_no_se_inventa_si_no_hay_respuestas(self):
+        casos = [
+            {
+                "grupo_consistencia": "asistencia",
+                "observado": {"top1_numero": "4.1", "decision": "respuesta", "top1_score": 0.88},
+            },
+            {
+                "grupo_consistencia": "asistencia",
+                "observado": {"top1_numero": "4.1", "decision": "respuesta", "top1_score": 0.87},
+            },
+        ]
+
+        resultado = consistencia_por_grupo(casos)
+
+        self.assertIsNone(resultado["asistencia"]["consistencia_respuesta"])
 
     def test_barrido_umbral(self):
         candidatos = [

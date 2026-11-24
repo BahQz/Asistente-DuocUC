@@ -19,6 +19,7 @@ from observabilidad.metricas import (
     calcular_percentiles,
     consistencia_por_grupo,
     detectar_anomalias,
+    es_caso_retrieval,
     hit_at_k,
     matriz_abstencion,
     precision_at_1,
@@ -178,6 +179,14 @@ seguridad_todos = [e["datos"] for e in eventos_crudos if e.get("tipo") == "segur
 recursos_todos = [e["datos"] for e in eventos_crudos if e.get("tipo") == "recursos"]
 bench_casos = [e["datos"] for e in eventos_crudos if e.get("tipo") == "benchmark_caso"]
 
+if bench_casos and any(
+    caso.get("dataset_validado_por_humano") is False for caso in bench_casos
+):
+    st.warning(
+        "Benchmark preliminar: las etiquetas del dataset aún no tienen validación humana. "
+        "Interpreta estos indicadores como exploratorios, no como resultados definitivos."
+    )
+
 # Filtros adicionales en sidebar
 origenes_disponibles = sorted(list({t.get("origen") for t in turnos_todos if t.get("origen")}))
 with st.sidebar:
@@ -214,6 +223,11 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
 # 1. PESTAÑA: RESUMEN
 with tab1:
     st.subheader("Indicadores Clave de Desempeño (KPIs)")
+    if not turnos and bench_casos:
+        st.info(
+            f"Corrida de recuperación: {len(bench_casos)} casos, sin turnos LLM. "
+            "Los KPIs de turnos conversacionales no aplican a este perfil."
+        )
     latencias = [float(t.get("latencia_total_ms", 0)) for t in turnos]
     stats_lat = calcular_percentiles(latencias)
 
@@ -246,6 +260,7 @@ with tab1:
     st.plotly_chart(
         figura_latencia_por_turno(turnos, p50=stats_lat["p50"], p95=stats_lat["p95"]),
         use_container_width=True,
+        key="obs_latencia_por_turno",
     )
 
 
@@ -258,9 +273,10 @@ with tab2:
         hitk = hit_at_k(bench_casos) * 100
         mat_abs = matriz_abstencion(bench_casos)
 
-        bcol1, bcol2, bcol3, bcol4 = st.columns(4)
+        bcol1, bcol2 = st.columns(2)
         bcol1.metric("Precision@1", f"{prec1:.1f}%")
         bcol2.metric("Hit@k", f"{hitk:.1f}%")
+        bcol3, bcol4 = st.columns(2)
         bcol3.metric("Abstención Correcta", f"{mat_abs['tasa_abstencion_correcta'] * 100:.1f}%")
         bcol4.metric("Falsos Rechazos", f"{mat_abs['tasa_falsos_rechazos'] * 100:.1f}%")
 
@@ -273,16 +289,28 @@ with tab2:
 
     c1, c2 = st.columns(2)
     with c1:
-        st.plotly_chart(figura_evolucion_scores(retrievals_todos), use_container_width=True)
+        st.plotly_chart(
+            figura_evolucion_scores(retrievals_todos),
+            use_container_width=True,
+            key="obs_evolucion_scores",
+        )
     with c2:
         # Simular barrido con candidatos disponibles
         candidatos_para_barrido = [
-            {"debe_abstenerse": c.get("esperado", {}).get("debe_abstenerse", False), "top1_score": c.get("observado", {}).get("top1_score", 0.0)}
+            {
+                "debe_abstenerse": c.get("esperado", {}).get("debe_abstenerse", False),
+                "top1_score": c.get("observado", {}).get("top1_score", 0.0),
+            }
             for c in bench_casos
+            if es_caso_retrieval(c)
         ]
         if candidatos_para_barrido:
             barrido_res = barrido_umbral(candidatos_para_barrido)
-            st.plotly_chart(figura_barrido_umbral(barrido_res), use_container_width=True)
+            st.plotly_chart(
+                figura_barrido_umbral(barrido_res),
+                use_container_width=True,
+                key="obs_barrido_umbral",
+            )
         else:
             st.info("Ejecuta el benchmark para visualizar la curva de barrido de umbral.")
 
@@ -290,14 +318,59 @@ with tab2:
 # 3. PESTAÑA: LATENCIA Y RECURSOS
 with tab3:
     st.subheader("Desglose de Latencia y Consumo de Hardware")
+    if retrievals_todos:
+        latencias_retrieval = [
+            float(r.get("total_ms", 0))
+            for r in retrievals_todos
+            if r.get("total_ms") is not None
+        ]
+        stats_retrieval = calcular_percentiles(latencias_retrieval)
+        latencias_frias = [
+            float(c.get("observado", {}).get("latencia_total_ms", 0))
+            for c in bench_casos
+            if c.get("observado", {}).get("turno_frio")
+        ]
+        latencias_calientes = [
+            float(c.get("observado", {}).get("latencia_total_ms", 0))
+            for c in bench_casos
+            if c.get("observado", {}).get("turno_frio") is False
+        ]
+        rcol1, rcol2, rcol3 = st.columns(3)
+        rcol1.metric("Retrieval P50", f"{stats_retrieval['p50']:.1f} ms")
+        rcol2.metric("Retrieval P95", f"{stats_retrieval['p95']:.1f} ms")
+        rcol3.metric(
+            "Arranque frío",
+            f"{calcular_percentiles(latencias_frias)['p50']:.1f} ms"
+            if latencias_frias else "No medido",
+            help="Primera carga de modelo/índice; se informa por separado de consultas calientes.",
+        )
+        if latencias_calientes:
+            stats_calientes = calcular_percentiles(latencias_calientes)
+            st.caption(
+                f"Casos calientes — P50 {stats_calientes['p50']:.1f} ms · "
+                f"P95 {stats_calientes['p95']:.1f} ms. Perfil retrieval; sin latencia LLM."
+            )
+
     lcol1, lcol2 = st.columns(2)
     with lcol1:
-        st.plotly_chart(figura_desglose_latencia_etapas(etapas_todas), use_container_width=True)
+        st.plotly_chart(
+            figura_desglose_latencia_etapas(etapas_todas),
+            use_container_width=True,
+            key="obs_desglose_latencia",
+        )
     with lcol2:
-        st.plotly_chart(figura_barras_apiladas_etapas(turnos, etapas_por_turno), use_container_width=True)
+        st.plotly_chart(
+            figura_barras_apiladas_etapas(turnos, etapas_por_turno),
+            use_container_width=True,
+            key="obs_barras_etapas",
+        )
 
     if recursos_todos:
-        st.plotly_chart(figura_recursos_ram_cpu(recursos_todos), use_container_width=True)
+        st.plotly_chart(
+            figura_recursos_ram_cpu(recursos_todos),
+            use_container_width=True,
+            key="obs_recursos",
+        )
 
 
 # 4. PESTAÑA: HERRAMIENTAS Y ERRORES
@@ -305,9 +378,17 @@ with tab4:
     st.subheader("Uso de Herramientas y Gestión de Errores")
     hcol1, hcol2 = st.columns(2)
     with hcol1:
-        st.plotly_chart(figura_uso_herramientas(turnos), use_container_width=True)
+        st.plotly_chart(
+            figura_uso_herramientas(turnos),
+            use_container_width=True,
+            key="obs_uso_herramientas",
+        )
     with hcol2:
-        st.plotly_chart(figura_distribucion_errores(errores_todos), use_container_width=True)
+        st.plotly_chart(
+            figura_distribucion_errores(errores_todos),
+            use_container_width=True,
+            key="obs_errores",
+        )
 
     if errores_todos:
         st.markdown("##### Registro Histórico de Errores")
@@ -320,11 +401,19 @@ with tab5:
     st.subheader("Protocolos de Seguridad, Ética y Privacidad (IE8)")
     scol1, scol2 = st.columns(2)
     with scol1:
-        st.plotly_chart(figura_eventos_seguridad(seguridad_todos), use_container_width=True)
+        st.plotly_chart(
+            figura_eventos_seguridad(seguridad_todos),
+            use_container_width=True,
+            key="obs_eventos_seguridad",
+        )
     with scol2:
         st.markdown("##### Verificación de Defensa en Profundidad")
         fuga_llm = sum(1 for s in seguridad_todos if s.get("control") == "pii_hacia_proveedor")
-        st.metric("PII Cruda Enviada al Proveedor LLM", fuga_llm, help="Debe ser estrictamente 0 en producción")
+        st.metric(
+            "Alertas de PII detectada hacia LLM",
+            fuga_llm,
+            help="Conteo de patrones reconocidos por la auditoría; cero no demuestra ausencia universal de PII.",
+        )
 
         st.markdown("##### Enmascaramiento de Datos Personales")
         pii_eventos = [s for s in seguridad_todos if s.get("control") == "pii"]
@@ -364,21 +453,47 @@ with tab6:
 # 7. PESTAÑA: EXPLORADOR DE TRAZAS
 with tab7:
     st.subheader("Trazabilidad Detallada de Ejecución ReAct (IE3)")
-    tids_disponibles = [t.get("trace_id") for t in turnos if t.get("trace_id")]
+    tids_disponibles = sorted({
+        e.get("trace_id")
+        for e in eventos_crudos
+        if e.get("trace_id")
+    })
 
     if tids_disponibles:
         trace_sel = st.selectbox("Seleccionar ID de Traza:", tids_disponibles)
-        etapas_traza = etapas_por_turno.get(trace_sel, [])
+        eventos_de_traza = [
+            e for e in eventos_crudos if e.get("trace_id") == trace_sel
+        ]
+        etapas_traza = [
+            e.get("datos", {})
+            for e in eventos_de_traza
+            if e.get("tipo") == "etapa"
+        ]
 
         if etapas_traza:
-            st.plotly_chart(figura_gantt_traza(etapas_traza), use_container_width=True)
+            st.plotly_chart(
+                figura_gantt_traza(etapas_traza),
+                use_container_width=True,
+                key=f"obs_gantt_{trace_sel}",
+            )
+        else:
+            st.info(
+                "Esta traza no contiene eventos de etapa; se muestran los eventos "
+                "disponibles (por ejemplo, retrieval y resultado de benchmark)."
+            )
 
-            st.markdown("##### Eventos Cronológicos de la Traza")
-            df_traza = pd.DataFrame(etapas_traza)
-            st.dataframe(df_traza, use_container_width=True)
+        st.markdown("##### Eventos Cronológicos de la Traza")
+        df_traza = pd.DataFrame([
+            {
+                "timestamp": e.get("ts"),
+                "tipo": e.get("tipo"),
+                **(e.get("datos") or {}),
+            }
+            for e in eventos_de_traza
+        ])
+        st.dataframe(df_traza, use_container_width=True)
 
-            with st.expander("📄 Ver JSON crudo de la traza"):
-                eventos_de_traza = [e for e in eventos_crudos if e.get("trace_id") == trace_sel]
-                st.code(json.dumps(eventos_de_traza, ensure_ascii=False, indent=2), language="json")
+        with st.expander("📄 Ver JSON crudo de la traza"):
+            st.code(json.dumps(eventos_de_traza, ensure_ascii=False, indent=2), language="json")
     else:
-        st.info("No hay trazas registradas en los turnos filtrados.")
+        st.info("No hay trazas en los eventos de la fuente seleccionada.")
