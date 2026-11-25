@@ -15,7 +15,11 @@ from typing import Any
 from chatbot.ajustes import OBS_DIR, PROYECTO_RAIZ
 from observabilidad.metricas import (
     calcular_percentiles,
+    consistencia_por_grupo,
     es_derivacion,
+    hit_at_k,
+    matriz_abstencion,
+    precision_at_1,
     tasa_bloqueo,
     tasa_exito,
 )
@@ -53,12 +57,26 @@ def generar_kpis(eventos: list[dict[str, Any]]) -> dict[str, Any]:
     etapas = [e["datos"] for e in eventos if e.get("tipo") == "etapa"]
     errores = [e["datos"] for e in eventos if e.get("tipo") == "error"]
     seguridad = [e["datos"] for e in eventos if e.get("tipo") == "seguridad"]
+    bench_casos = [e["datos"] for e in eventos if e.get("tipo") == "benchmark_caso"]
+    retrievals = [e["datos"] for e in eventos if e.get("tipo") == "retrieval"]
 
     n_turnos = len(turnos)
     latencias = [float(t.get("latencia_total_ms", 0)) for t in turnos]
+    if not latencias and bench_casos:
+        latencias = [
+            float(c.get("observado", {}).get("latencia_total_ms", 0))
+            for c in bench_casos
+        ]
+    elif not latencias and retrievals:
+        latencias = [float(r.get("total_ms", 0)) for r in retrievals]
     stats_lat = calcular_percentiles(latencias)
 
     tokens = [int(t.get("tokens_total", 0)) for t in turnos]
+    if not tokens and bench_casos:
+        tokens = [
+            int(c.get("observado", {}).get("tokens_total", 0))
+            for c in bench_casos
+        ]
     tokens_totales = sum(tokens)
     tokens_stats = calcular_percentiles(tokens)
 
@@ -85,15 +103,28 @@ def generar_kpis(eventos: list[dict[str, Any]]) -> dict[str, Any]:
     derivaciones = [t for t in turnos if t.get("derivacion") is True]
     turnos_con_retrieval = [t for t in turnos if t.get("abstencion") is not None]
 
-    pct_abstencion = (
-        round(len(abstenciones) / len(turnos_con_retrieval) * 100, 1)
-        if turnos_con_retrieval
-        else 0.0
-    )
+    if turnos_con_retrieval:
+        pct_abstencion = round(len(abstenciones) / len(turnos_con_retrieval) * 100, 1)
+    elif retrievals:
+        abs_ret = sum(1 for r in retrievals if r.get("decision") == "abstencion")
+        pct_abstencion = round(abs_ret / len(retrievals) * 100, 1)
+    else:
+        pct_abstencion = 0.0
     pct_derivacion = round(len(derivaciones) / n_turnos * 100, 1) if n_turnos else 0.0
+
+    kpis_benchmark: dict[str, Any] = {}
+    if bench_casos:
+        kpis_benchmark = {
+            "n_casos_benchmark": len(bench_casos),
+            "precision_at_1": precision_at_1(bench_casos),
+            "hit_at_k": hit_at_k(bench_casos),
+            "matriz_abstencion": matriz_abstencion(bench_casos),
+            "consistencia_por_grupo": consistencia_por_grupo(bench_casos),
+        }
 
     return {
         "n_turnos": n_turnos,
+        "n_casos_benchmark": len(bench_casos),
         "tasa_exito": tasa_exito(turnos),
         "tasa_bloqueo": tasa_bloqueo(turnos),
         "latencia_total_ms": stats_lat,
@@ -104,6 +135,7 @@ def generar_kpis(eventos: list[dict[str, Any]]) -> dict[str, Any]:
         "uso_herramientas": dict(uso_herramientas),
         "errores_por_categoria": dict(cats_error),
         "seguridad_por_control": dict(controles_seg),
+        "benchmark": kpis_benchmark,
     }
 
 
@@ -166,6 +198,7 @@ def exportar_tablas(
         "| Métrica | Valor | Unidad / Formato |",
         "|---|---|---|",
         f"| Total de turnos evaluados | {kpis['n_turnos']} | turnos |",
+        f"| Casos de benchmark evaluados | {kpis.get('n_casos_benchmark', 0)} | casos |",
         f"| Tasa de éxito | {kpis['tasa_exito'] * 100:.2f}% | % |",
         f"| Tasa de bloqueos de seguridad | {kpis['tasa_bloqueo'] * 100:.2f}% | % |",
         f"| Latencia media total | {kpis['latencia_total_ms']['media']:.1f} | ms |",
@@ -175,12 +208,23 @@ def exportar_tablas(
         f"| Tokens promedio por turno | {kpis['tokens_por_turno']['media']:.1f} | tokens |",
         f"| Tasa de abstención (retrieval) | {kpis['pct_abstencion']:.1f}% | % |",
         f"| Tasa de derivación oficial | {kpis['pct_derivacion']:.1f}% | % |",
+    ]
+    if kpis.get("benchmark"):
+        bm = kpis["benchmark"]
+        mat = bm.get("matriz_abstencion", {})
+        contenido_md.extend([
+            f"| Precision@1 (benchmark RAG) | {bm.get('precision_at_1', 0.0) * 100:.2f}% | % |",
+            f"| Hit@k (benchmark RAG) | {bm.get('hit_at_k', 0.0) * 100:.2f}% | % |",
+            f"| Abstención correcta (fuera de dominio) | {mat.get('tasa_abstencion_correcta', 0.0) * 100:.2f}% | % |",
+            f"| Falsos rechazos (en dominio) | {mat.get('tasa_falsos_rechazos', 0.0) * 100:.2f}% | % |",
+        ])
+    contenido_md.extend([
         "",
         "## 2. Frecuencia de Uso de Herramientas",
         "",
         "| Herramienta | Cantidad de Invocaciones |",
         "|---|---|",
-    ]
+    ])
 
     for h, cnt in kpis["uso_herramientas"].items():
         contenido_md.append(f"| `{h}` | {cnt} |")
@@ -213,11 +257,19 @@ def exportar_tablas(
         w = csv.writer(f)
         w.writerow(["metrica", "valor"])
         w.writerow(["n_turnos", kpis["n_turnos"]])
+        w.writerow(["n_casos_benchmark", kpis.get("n_casos_benchmark", 0)])
         w.writerow(["tasa_exito", kpis["tasa_exito"]])
         w.writerow(["latencia_media_ms", kpis["latencia_total_ms"]["media"]])
         w.writerow(["latencia_p50_ms", kpis["latencia_total_ms"]["p50"]])
         w.writerow(["latencia_p95_ms", kpis["latencia_total_ms"]["p95"]])
         w.writerow(["tokens_totales", kpis["tokens_totales"]])
+        if kpis.get("benchmark"):
+            bm = kpis["benchmark"]
+            mat = bm.get("matriz_abstencion", {})
+            w.writerow(["precision_at_1", bm.get("precision_at_1", 0.0)])
+            w.writerow(["hit_at_k", bm.get("hit_at_k", 0.0)])
+            w.writerow(["tasa_abstencion_correcta", mat.get("tasa_abstencion_correcta", 0.0)])
+            w.writerow(["tasa_falsos_rechazos", mat.get("tasa_falsos_rechazos", 0.0)])
 
     print(f"  Tablas y datos crudos exportados exitosamente en: {directorio}")
 

@@ -288,9 +288,9 @@ A continuación se presentan los esquemas visuales en texto de las 7 pestañas d
 ```
 +-------------------------------------------------+-------------------------------------------------+
 | Eventos de Seguridad por Control y Acción       | Verificación de Privacidad (Zero Data Leakage)  |
-| [pii: enmascarado]       ======== (14)          | PII cruda enviada al LLM: 0 (CERO GARANTIZADO)  |
-| [inyeccion: bloqueado]   === (4)                | PII cruda en logs:        0 (CERO GARANTIZADO)  |
-| [respaldo: alertado]     == (2)                 | PII cruda en memoria:     0 (CERO GARANTIZADO)  |
+| [pii: enmascarado]       ======== (14)          | PII detectada en logs de prueba: conteo observado |
+| [inyeccion: bloqueado]   === (4)                | PII detectada hacia LLM: auditoría de patrones |
+| [respaldo: alertado]     == (2)                 | La auditoría no garantiza ausencia universal de PII |
 +-------------------------------------------------+-------------------------------------------------+
 | Desglose de Datos Enmascarados: RUT (8) | Correo (4) | Teléfono (3) | Tarjeta (1) | Clave (1)     |
 +---------------------------------------------------------------------------------------------------+

@@ -1,0 +1,12 @@
+metrica,valor
+n_turnos,17
+n_casos_benchmark,16
+tasa_exito,1.0
+latencia_media_ms,23712.59
+latencia_p50_ms,20124.98
+latencia_p95_ms,50401.85
+tokens_totales,74857
+precision_at_1,0.8889
+hit_at_k,0.8889
+tasa_abstencion_correcta,1.0
+tasa_falsos_rechazos,0.0

@@ -1,0 +1,55 @@
+{
+  "n_turnos": 17,
+  "n_casos_benchmark": 16,
+  "tasa_exito": 1.0,
+  "tasa_bloqueo": 0.2941,
+  "latencia_total_ms": {
+    "media": 23712.59,
+    "p50": 20124.98,
+    "p95": 50401.85
+  },
+  "tokens_totales": 74857,
+  "tokens_por_turno": {
+    "media": 4403.35,
+    "p50": 5314.0,
+    "p95": 9033.0
+  },
+  "pct_abstencion": 0.0,
+  "pct_derivacion": 11.8,
+  "uso_herramientas": {
+    "buscar_reglamentos": 9,
+    "calcular_plazo": 2,
+    "consultar_feriados": 1
+  },
+  "errores_por_categoria": {},
+  "seguridad_por_control": {
+    "respuesta_sin_respaldo:alertado": 6,
+    "fuga_prompt:bloqueado": 1,
+    "respuesta_sin_respaldo:bloqueado": 2,
+    "pii:enmascarado": 1,
+    "prompt_injection:bloqueado": 2
+  },
+  "benchmark": {
+    "n_casos_benchmark": 16,
+    "precision_at_1": 0.8889,
+    "hit_at_k": 0.8889,
+    "matriz_abstencion": {
+      "tp": 2,
+      "fp": 0,
+      "tn": 9,
+      "fn": 0,
+      "tasa_abstencion_correcta": 1.0,
+      "tasa_falsos_rechazos": 0.0
+    },
+    "consistencia_por_grupo": {
+      "asistencia": {
+        "n_casos": 3,
+        "consistencia_recuperacion": 1.0,
+        "consistencia_decision": 1.0,
+        "consistencia_respuesta": 0.0,
+        "std_score": 0.0256,
+        "top1_modal": "4.1"
+      }
+    }
+  }
+}

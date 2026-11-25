@@ -213,11 +213,12 @@ def ejecutar_benchmark(
                 # Turno del caso
                 try:
                     res_agente = agente_real.responder(consulta)
-                    turnos_llm_ejecutados += 1
+                    bloqueo_real = "bloqueado_entrada" if "bloqueado" in [a.get("accion") for a in res_agente.avisos_seguridad] else None
+                    if not bloqueo_real:
+                        turnos_llm_ejecutados += 1
                     errores_429_consecutivos = 0
 
                     herramientas_usadas = res_agente.herramientas_usadas
-                    bloqueo_real = "bloqueado_entrada" if "bloqueado" in [a.get("accion") for a in res_agente.avisos_seguridad] else None
 
                     # Verificar orden de herramientas esperadas
                     if herramientas_esp:

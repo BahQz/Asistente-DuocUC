@@ -21,8 +21,8 @@ Este documento describe la matriz técnica de riesgos, controles deterministas, 
 
 ## 2. Marco Normativo de Referencia
 
-La arquitectura de seguridad y privacidad de Duqui toma como marco orientador la **Legislación Chilena sobre Protección de la Vida Privada y Datos de Carácter Personal** (Ley N.º 19.628 y sus actualizaciones para entornos digitales), la cual exige:
-1. **Principio de Licitud y Finalidad**: Los datos estudiantiles (RUT, notas, asistencia) solo deben tratarse para la orientación académica solicitada.
-2. **Minimización de Datos**: El agente no almacena ni transmite identificadores sensibles si no son estrictamente requeridos para la operación del servicio.
-3. **Seguridad y Confidencialidad**: Los registros de depuración y telemetría no conservan números de documento, credenciales ni números telefónicos en texto claro.
-4. **Resguardo ante Terceros Proveedores**: Garantizar contractualmente y mediante software que ningún dato personal de estudiantes sea transferido en los payloads hacia proveedores externos de modelos de lenguaje (Groq, Google AI Studio u OpenRouter).
+La solución toma como referencias de diseño la Ley N.º 19.628 y el marco constitucional chileno sobre protección de datos. Esta matriz es una **descripción técnica orientativa**, no una evaluación jurídica ni una certificación de cumplimiento. El equipo debe verificar la normativa vigente, las políticas institucionales y las condiciones contractuales del proveedor antes de proponer un despliegue productivo.
+
+1. **Finalidad y minimización**: el agente debería tratar solo los datos necesarios para la consulta; el código enmascara algunos formatos reconocibles, pero eso no equivale a garantizar que no se almacenen o transmitan otros datos personales.
+2. **Seguridad y confidencialidad**: la telemetría aplica enmascaramiento y auditorías sobre patrones conocidos. Los resultados de pruebas cubren casos concretos y no prueban ausencia universal de PII en logs o payloads.
+3. **Proveedores externos**: la auditoría previa al LLM ayuda a detectar ciertos patrones de PII; no reemplaza revisión contractual, configuración de retención ni validación institucional del proveedor.

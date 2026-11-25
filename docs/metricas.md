@@ -6,6 +6,14 @@ Este documento detalla las definiciones formales, fórmulas matemáticas, evento
 
 ## 1. Resumen de Métricas Principales
 
+Las correspondencias IE1–IE9 de esta tabla se refieren a los indicadores de la pauta EP3. Las métricas de recuperación y abstención son métricas del **benchmark**, no una evaluación automática de fidelidad de cada respuesta generada.
+
+El perfil `retrieval` evalúa los casos RAG (normal, errata/sinónimo, jerga,
+multietapa, seguimiento y fuera de dominio). Los casos ambiguos, de API externa
+y de guardrails de seguridad se informan aparte y no entran en las métricas de
+recuperación/abstención. En este perfil no hay respuesta generada; por lo tanto,
+la consistencia de respuesta se informa como no disponible.
+
 | Métrica | Definición Conceptual | Fórmula / Algoritmo | Evento de Origen | Panel del Dashboard | Indicador de Logro |
 |---|---|---|---|---|---|
 | **Tasa de Éxito** | Proporción de turnos resueltos satisfactoriamente sobre turnos ejecutados sin error interno. | $$\text{Tasa de Éxito} = \frac{N_{\text{ok}}}{N_{\text{ok}} + N_{\text{error}}}$$ | `turno.resultado` | Tab 1: Resumen | IE1 |
@@ -15,8 +23,8 @@ Este documento detalla las definiciones formales, fórmulas matemáticas, evento
 | **Tokens por Turno** | Cantidad de tokens consumidos (prompt + completion) por cada invocación del modelo de lenguaje. | $$\text{Tokens Total} = \text{Tokens}_{\text{prompt}} + \text{Tokens}_{\text{completion}}$$ | `turno.tokens_total` | Tab 1 / Tab 3 | IE2 |
 | **Precision@1** | Proporción de consultas del benchmark donde el fragmento de mayor score coincide con la sección esperada. | $$\text{Precision@1} = \frac{\sum \mathbb{I}(\text{top1} \in \text{secciones\_esperadas})}{N_{\text{casos\_con\_seccion}}}$$ | `benchmark_caso.observado.acierto_top1` | Tab 2: Precisión | IE1 |
 | **Hit@k** | Proporción de consultas donde al menos una sección esperada apareció entre los $k$ candidatos recuperados. | $$\text{Hit@k} = \frac{\sum \mathbb{I}(\exists s \in \text{candidatos} \cap \text{esperados})}{N_{\text{casos\_con\_seccion}}}$$ | `benchmark_caso.observado.hit_topk` | Tab 2: Precisión | IE1 |
-| **Abstención Correcta** | Sensibilidad ante preguntas fuera de dominio (True Positive Rate de abstención). | $$\text{Tasa Abs.} = \frac{\text{TP}}{\text{TP} + \text{FN}}$$ | `benchmark_caso.observado.decision` | Tab 2: Precisión | IE1 |
-| **Falsos Rechazos** | Tasa de consultas válidas dentro del reglamento que fueron rechazadas erróneamente por el umbral. | $$\text{Falsos Rechazos} = \frac{\text{FP}}{\text{FP} + \text{TN}}$$ | `benchmark_caso.observado.decision` | Tab 2: Precisión | IE1 |
+| **Abstención Correcta** | Sensibilidad ante preguntas etiquetadas fuera de dominio. Se excluyen casos cuyo resultado esperado sea un bloqueo de seguridad. | $$\text{Tasa Abs.} = \frac{\text{TP}}{\text{TP} + \text{FN}}$$ | `benchmark_caso.esperado` + `observado.decision` | Tab 2: Precisión | IE1 |
+| **Falsos Rechazos** | Tasa de consultas válidas dentro del reglamento que fueron rechazadas erróneamente por el umbral. Se excluyen casos de seguridad. | $$\text{Falsos Rechazos} = \frac{\text{FP}}{\text{FP} + \text{TN}}$$ | `benchmark_caso.esperado` + `observado.decision` | Tab 2: Precisión | IE1 |
 | **Consistencia Semántica** | Estabilidad de recuperación entre variantes lingüísticas de un mismo grupo temático (moda top-1). | $$\text{Consistencia} = \frac{\text{Frecuencia}(\text{top1}_{\text{modal}})}{N_{\text{grupo}}}$$ | `benchmark_caso.grupo_consistencia` | Tab 2: Consistencia | IE1 |
 | **Consistencia de Decisión** | Proporción de variantes de un grupo que producen la misma decisión (responder vs abstenerse). | $$\text{Consistencia Decisión} = \frac{\text{Frecuencia}(\text{decisión}_{\text{modal}})}{N_{\text{grupo}}}$$ | `benchmark_caso.grupo_consistencia` | Tab 2: Consistencia | IE1 |
 | **Desviación Score (std)** | Desviación estándar del `top1_score` entre las variantes de un mismo grupo semántico. | $$\sigma = \sqrt{\frac{1}{N}\sum_{i=1}^N (s_i - \bar{s})^2}$$ | `retrieval.top1_score` | Tab 2: Consistencia | IE1 |

@@ -1,60 +1,70 @@
-# Carpeta de Evidencia y Registros de Validación (EP3)
+# Evidencia y validación de la EP3
 
-Este directorio almacena la evidencia reproducible de ejecución, pruebas de software y telemetría de referencia para la **Evaluación Parcial N.º 3**.
+Esta carpeta reúne pruebas automatizadas, resultados reproducibles del
+benchmark, capturas del dashboard y el informe técnico de la Evaluación
+Parcial N.º 3.
 
----
+## Benchmark de recuperación
 
-## 1. Archivos Generados Automáticamente
+El conjunto contiene 50 casos en `benchmark/casos.json`. El perfil `retrieval`
+ejecuta los 50 sin llamar al LLM ni consumir tokens de proveedor; carga el
+modelo de embeddings local. Su salida mide recuperación RAG y abstención,
+no fidelidad de respuestas generadas.
 
-- **`pruebas_unittest.txt`**: Registro completo de la ejecución de la suite de 68 pruebas automatizadas (`python -m unittest discover -s tests -v`), demostrando compatibilidad total con EP2 y validación de observabilidad, seguridad y benchmark.
+```powershell
+python -m benchmark.ejecutar --perfil retrieval --dry-run
+python -m benchmark.ejecutar --perfil retrieval --pausa 0
+```
 
----
+Los artefactos de la corrida documentada son:
 
-## 2. Pendientes Manuales para el Estudiante (Benjamín Quiroz)
+- `eventos_referencia.jsonl`: eventos de benchmark y retrieval correlacionados
+  por `run_id` y `trace_id`, con consultas enmascaradas.
+- `benchmark_retrieval_preliminar.json`: KPIs, percentiles y estado de
+  validación del dataset.
+- `benchmark_retrieval_preliminar.csv`: resultados por caso.
 
-Conforme a las instrucciones de la asignatura y la rúbrica de evaluación de Duoc UC, los siguientes apartados deben ser completados o validados manualmente por el autor:
+**Estado actual:** el dataset declara `validado_por_humano: true` tras la revisión humana de las 50 etiquetas de sección esperada, abstención, datos clave y bloqueos de seguridad. La corrida de referencia exportada (`ep3-referencia`) incluye `eventos_referencia.jsonl`, `resumen_referencia.json`, `tablas_referencia.md`, `kpis_principales.csv` y `metricas_por_caso.csv`.
 
-### A. Validación de Etiquetas del Benchmark
-1. Revisa las etiquetas de `benchmark/casos.json` (sección esperada, debe abstenerse, datos clave).
-2. Cambia el campo `"validado_por_humano": false` a `true` una vez confirmadas.
+El perfil `minimo` genera respuestas con el LLM y requiere una clave válida.
+Solo debe ejecutarse tras validar las etiquetas y obtener autorización del
+equipo para el consumo de tokens:
 
-### B. Ejecución de la Corrida de Referencia
-1. Ejecuta una simulación previa:
-   ```bash
-   python -m benchmark.ejecutar --perfil minimo --dry-run
-   ```
-2. Ejecuta el benchmark real en perfil mínimo (consume $\le 15$ turnos con tu API key de Groq):
-   ```bash
-   python -m benchmark.ejecutar --perfil minimo
-   ```
-3. Exporta la corrida generada hacia esta carpeta de evidencia:
-   ```bash
-   python -m observabilidad.resumen --run <RUN_ID> --exportar docs/evidencia
-   ```
-   Esto generará aquí:
-   - `eventos_referencia.jsonl`
-   - `resumen_referencia.json`
-   - `tablas_referencia.md`
-   - Archivos CSV por tabla (`kpis_principales.csv`, etc.)
+```powershell
+python -m benchmark.ejecutar --perfil minimo --dry-run
+python -m benchmark.ejecutar --perfil minimo
+```
 
-### C. Capturas del Dashboard para el Informe (IE4, IE5)
-Inicia la aplicación:
-```bash
+## Dashboard y trazabilidad
+
+Inicia la aplicación con:
+
+```powershell
 python -m streamlit run web.py
 ```
-Abre en la barra lateral la página **📊 Observabilidad** y toma capturas de pantalla de alta resolución para incluir en el informe de 5 páginas:
-- `captura_dashboard_resumen.png` (Pestaña 1: Resumen y latencia P50/P95)
-- `captura_dashboard_precision.png` (Pestaña 2: Precision@1, Hit@k y barrido de umbral)
-- `captura_dashboard_latencia.png` (Pestaña 3: Desglose por componente y hardware)
-- `captura_dashboard_herramientas.png` (Pestaña 4: Frecuencia de herramientas y errores)
-- `captura_dashboard_seguridad.png` (Pestaña 5: PII y bloqueos)
-- `captura_dashboard_anomalias.png` (Pestaña 6: Tabla de anomalías detectadas)
-- `captura_dashboard_trazas.png` (Pestaña 7: Diagrama de Gantt de una traza ReAct)
 
-### D. Redacción Personal del Informe Escrito (Máximo 5 páginas)
-> **RECORDATORIO ÉTICO DUOC UC:** La rúbrica prohíbe el uso de IA para redactar conclusiones, justificaciones técnicas o reflexiones individuales.
-- [ ] **Análisis Crítico de Ejecución (IE6)**: Redacta tus hallazgos sobre los cuellos de botella observados (latencia del LLM vs retrieval, impacto del cold start).
-- [ ] **Propuesta de Mejora y Escalabilidad (IE7)**: Propón recomendaciones fundamentadas basadas en los datos observados (ej. ajuste de umbral a 0.82, optimización de prompts, caché semántica).
-- [ ] **Defensa de Criterios Éticos y Normativos (IE8)**: Justifica cómo el enmascaramiento de PII y la auditoría al proveedor cumplen con la normativa chilena de protección de datos personales.
-- [ ] **Reflexión Individual Obligatoria**: Incluye tu reflexión personal sobre el aprendizaje y contribución al proyecto.
-- [ ] **Declaración de Uso de IA**: Cita el uso de IA como herramienta de apoyo en desarrollo según https://bibliotecas.duoc.cl/ia.
+En la página **Observabilidad**, selecciona **Corrida de referencia**. El panel
+incluye resumen, precisión/consistencia, latencia/recursos, herramientas/errores,
+seguridad/privacidad, anomalías y explorador de trazas. Si el benchmark no está
+validado, el panel muestra una advertencia explícita.
+
+Capturas guardadas en esta entrega:
+
+- `captura_dashboard_precision.png`: métricas del benchmark y su advertencia.
+- `captura_dashboard_traza.png`: eventos de retrieval vinculados a una traza.
+
+## Pruebas y entregables verificados
+
+- `pruebas_unittest.txt`: salida de la ejecución completa de la suite (**72 pruebas aprobadas**).
+- `benchmark/casos.json`: 50 casos etiquetados y validados (`validado_por_humano: true`).
+- `../Informe_EP3_Duqui.docx` y `../Informe_EP3_Duqui.md`: informe técnico completo de 5 páginas con métricas, trazas, capturas, análisis crítico (IE6), recomendaciones justificadas (IE7), defensa ética/normativa (IE8), reflexión individual y referencias APA 7.
+- `../Presentacion_EP3_Duqui.pptx`, `../guion_presentacion_EP3.md` y `../guia_estudio_EP3.md`: presentación de 10 diapositivas, guion completo de exposición y guía de estudio con las preguntas del foro del profesor.
+
+## Uso de IA
+
+OpenCode se utilizó como apoyo para revisar código, corregir la selección y
+clasificación de métricas del benchmark, generar la corrida local y preparar
+materiales de estudio. El equipo debe revisar los artefactos, validar las
+etiquetas y declarar/citar este uso conforme a
+<https://bibliotecas.duoc.cl/ia>. No se generaron conclusiones, justificaciones
+críticas ni reflexiones personales.

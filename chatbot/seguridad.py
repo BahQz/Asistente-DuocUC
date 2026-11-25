@@ -273,23 +273,23 @@ def analizar_inyeccion(texto: str) -> dict[str, Any]:
 
     norm = normalizar_texto_seguro(texto)
 
-    # Filtrar excepciones legítimas
+    # Eliminar frases conversacionales o académicas legítimas para que no disparen
+    # falsos positivos por sí solas, pero sin omitir ataques concatenados en el mismo mensaje.
+    norm_evaluacion = norm
     for pat in PATRONES_EXCEPCION_LEGITIMA:
-        if pat.search(norm):
-            # Si contiene una frase legítima y no contiene delimitadores ni exfiltración de api keys
-            if not any(r[1].search(norm) for r in REGLAS_INYECCION_ALTA if r[0] in ("delimitadores_falsos", "exfiltracion_secretos")):
-                return {"severidad": "baja", "reglas": [], "puntaje": 0}
+        norm_evaluacion = pat.sub(" ", norm_evaluacion)
+    norm_evaluacion = " ".join(norm_evaluacion.split())
 
     disparadas: list[str] = []
     puntaje = 0
 
     for nombre, patron in REGLAS_INYECCION_ALTA:
-        if patron.search(norm):
+        if patron.search(norm_evaluacion):
             disparadas.append(nombre)
             puntaje += 3
 
     for nombre, patron in REGLAS_INYECCION_MEDIA:
-        if patron.search(norm):
+        if patron.search(norm_evaluacion):
             disparadas.append(nombre)
             puntaje += 1
 

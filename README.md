@@ -1,7 +1,7 @@
 # Duqui · Agente Estudiantil Duoc UC
 
 > **De un agente funcional a un sistema evaluable, observable y seguro.**  
-> Proyecto de la asignatura **ISY0101 — Ingeniería de Soluciones con IA** (Sección `007D_OLS`).  
+> Proyecto de la asignatura **ISY1010 / ISY0101 — Ingeniería de Soluciones con IA** (Sección `007D_OLS`).  
 > **Evaluación Parcial N.º 3 (EP3): Observabilidad, Trazabilidad y Seguridad.**
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
@@ -13,7 +13,7 @@
 [![License](https://img.shields.io/badge/uso-acad%C3%A9mico-0033A0)](#licencia)
 
 **Autor:** Benjamín Quiroz  
-**Asignatura:** ISY0101 — Ingeniería de Soluciones con IA (Sección 007D_OLS)  
+**Asignatura:** ISY1010 / ISY0101 — Ingeniería de Soluciones con IA (Sección 007D_OLS)  
 **Evaluación:** Parcial N.º 3 — Observabilidad, Trazabilidad y Seguridad de Duqui  
 
 ---
@@ -28,7 +28,7 @@ y canales de apoyo.
 A lo largo del semestre, el sistema ha evolucionado por tres etapas:
 - **EP1 (RAG estático)**: Búsqueda léxica TF-IDF, reglas duras `if/elif` y prompt de una sola llamada.
 - **EP2 (Agente funcional)**: Búsqueda semántica (Embeddings E5 + ChromaDB), orquestación ReAct con LangChain/LangGraph, 7 herramientas, memoria y generación de borradores.
-- **EP3 (Observabilidad y Seguridad)**: Telemetría unificada en JSONL v1, guardrails deterministas de seguridad (PII, prompt injection, prompt leak, groundedness), suite de benchmark token-económico con 46 casos etiquetados y panel de control analítico con 7 pestañas en Streamlit / Plotly.
+- **EP3 (Observabilidad y Seguridad)**: Telemetría unificada en JSONL v1, guardrails deterministas de seguridad (PII, prompt injection, prompt leak, groundedness), suite de benchmark con **50 casos etiquetados y validados** y panel analítico de 7 pestañas en Streamlit / Plotly.
 
 ### Documentación y entregables
 
@@ -36,9 +36,9 @@ A lo largo del semestre, el sistema ha evolucionado por tres etapas:
 |---|---|---|
 | [`docs/metricas.md`](docs/metricas.md) | Markdown | **Definición formal de métricas**: fórmulas matemáticas (KaTeX), eventos JSONL fuente, umbrales y criterios de evaluación. |
 | [`docs/diseno/observabilidad.md`](docs/diseno/observabilidad.md) | Markdown | **Arquitectura de telemetría**: diagramas de componentes y secuencia Mermaid, esquema JSONL v1 y wireframes de las 7 pestañas. |
-| [`docs/diseno/matriz_controles_seguridad.md`](docs/diseno/matriz_controles_seguridad.md) | Markdown | **Matriz de seguridad**: mapeo vs. OWASP Top 10 for LLM 2025 y marco legal chileno (Ley 19.628 / 21.096). |
+| [`docs/diseno/matriz_controles_seguridad.md`](docs/diseno/matriz_controles_seguridad.md) | Markdown | **Matriz de seguridad**: mapeo vs. OWASP Top 10 for LLM 2025 y marco legal chileno (Ley 19.628 / Ley 21.719). |
 | [`docs/evidencia/README.md`](docs/evidencia/README.md) | Markdown | **Guía de evidencias experimentales**: instrucciones paso a paso para ejecutar el benchmark y generar tablas de referencia. |
-| [`docs/evidencia/pruebas_unittest.txt`](docs/evidencia/pruebas_unittest.txt) | Texto | Salida de ejecución de la suite completa de **68 pruebas unitarias y de integración**. |
+| [`docs/evidencia/pruebas_unittest.txt`](docs/evidencia/pruebas_unittest.txt) | Texto | Salida de ejecución de la suite completa de **73 pruebas unitarias y de integración** en UTF-8. |
 | [`docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf`](docs/Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf) | PDF | Informe técnico oficial de la Evaluación Parcial 2. |
 | [`docs/PresentacionSol-IaBenjaminQuiroz.pdf`](docs/PresentacionSol-IaBenjaminQuiroz.pdf) | PDF | Presentación de diapositivas de la Evaluación Parcial 2. |
 | [`docs/Ev1_SolucionesIA_BenjaminQuiroz.pdf`](docs/Ev1_SolucionesIA_BenjaminQuiroz.pdf) | PDF | Informe de referencia de la Evaluación Parcial 1 (RAG léxico). |
@@ -59,31 +59,31 @@ A lo largo del semestre, el sistema ha evolucionado por tres etapas:
 
 ### 2.3 Qué se añadió en la EP3 (Observabilidad, Trazabilidad y Seguridad)
 * **Pipeline de Telemetría Estructurada JSONL (Esquema v1)**:
-  - Registro atómico y thread-safe de 8 tipos de eventos (`sesion_iniciada`, `turno_iniciado`, `etapa_completada`, `recuperacion_rag`, `api_externa`, `evento_seguridad`, `turno_completado`, `sesion_finalizada`).
+  - Registro atómico y thread-safe de 8 tipos de eventos (`turno`, `etapa`, `retrieval`, `api_externa`, `error`, `seguridad`, `recursos`, `benchmark_caso`).
   - Contexto de traza distribuido (`trace_id`, `session_id`, `run_id`, `origen`) propagado vía `contextvars` con fallback a nivel de thread.
   - Métricas de consumo de recursos de sistema y proceso (RSS RAM en MB y CPU % vía `psutil`) medidas en tiempo real por etapa y por turno.
-  - Auditoría de llamadas a proveedor LLM (`tokens_entrada`, `tokens_salida`, `tiempo_al_primer_token_ms`, `modelo_real`) previniendo fugas de claves o payloads sensibles.
+  - Auditoría de llamadas al proveedor LLM (tokens y latencia); registra metadatos y patrones reconocidos, no una garantía de ausencia de todos los datos sensibles.
 * **Guardrails Deterministas de Seguridad (`chatbot/seguridad.py`)**:
   - *Enmascaramiento de PII*: Detección y ofuscación irreversible de RUT chileno con dígito verificador, emails (con lista blanca para `soporte@duocuc.cl`), teléfonos (lista blanca `600-300-4000`), tarjetas de crédito (validación de checksum de Luhn) y contraseñas.
   - *Detección de Inyecciones de Prompt*: Reglas bilingües (ES/EN) para detectar ataques de desobediencia (*jailbreak*, evasión de rol, *system prompt extraction*) con lista blanca para consultas académicas legítimas (p. ej. *«¿puedo ignorar una inasistencia?»*).
   - *Prevención de Fuga de Instrucciones del Sistema*: Algoritmo de ventanas deslizantes (*shingles*) de 8 palabras consecutivas normalizadas que bloquea respuestas que revelen el prompt interno de Duqui.
   - *Verificación de Respaldo Documental (Anti-Alucinación / Groundedness)*: Cotejo de afirmaciones con números de artículo o plazos institucionales contra los fragmentos de reglamento efectivamente recuperados.
 * **Benchmark Token-Económico (`benchmark/casos.json`, `benchmark/ejecutar.py`)**:
-  - 46 casos de prueba etiquetados con categoría, dificultad, sección esperada y palabras clave obligatorias.
+  - 50 casos de prueba etiquetados con categoría, perfil, sección esperada y datos clave. El archivo declara si las etiquetas fueron validadas por una persona.
   - 4 grupos de consistencia semántica (`asistencia`, `retiro`, `justificacion`, `biblioteca`) para medir variabilidad de respuestas ante paráfrasis y erratas.
   - Tres perfiles de ejecución (`retrieval`, `minimo`, `completo`) y modo `--dry-run` para simulación con 0 costo de tokens. Límite estricto de $\le 15$ turnos con LLM en perfil `minimo`.
   - Mecanismos de seguridad económica: techo presupuestario (`--presupuesto-tokens`), pausa de cortesía entre turnos y aborto automático inmediato ante respuestas HTTP 429.
 * **Panel de Control Analítico Multi-Página (`pages/1_Observabilidad.py`)**:
   - Aplicación Streamlit desacoplada de dependencias pesadas (arranque instantáneo sin cargar ChromaDB ni PyTorch).
   - 7 pestañas de diagnóstico analítico construidas sobre una librería pura de figuras Plotly (`observabilidad/panel.py`):
-    1. *Resumen General*: KPIs globales (turnos, sesiones, latencia p50/p95, tokens promedio, errores, eventos de seguridad).
-    2. *Precisión y Recuperación (RAG)*: Distribución de similitud coseno, tasa de acierto y curva de barrido de umbral.
-    3. *Latencia y Recursos*: Serie temporal de latencia por turno, desglose por etapas y consumo de RAM/CPU.
-    4. *Uso de Herramientas*: Frecuencia de invocación de tools, duración promedio y tasa de error.
-    5. *Seguridad y Guardrails*: Conteo de bloqueos PII, inyecciones neutralizadas y auditoría de groundedness.
-    6. *Anomalías y Errores*: Desglose de fallos por tipo (`timeout`, `rate_limit`, `sin_contexto`, `tool_error`).
-    7. *Explorador de Trazas*: Vista granular de transacciones con diagrama de Gantt por etapas e inspección de metadatos.
-* **Suite Ampliada a 68 Pruebas Automatizadas**: 100% de retrocompatibilidad con las 22 pruebas de EP2 y 46 nuevas pruebas especializadas en seguridad, telemetría y benchmark.
+    1. *Resumen*: KPIs globales (turnos, tasa de éxito, latencia P50/P95, tokens totales/promedio, tasa de bloqueo, abstención, derivación y zona gris).
+    2. *Precisión y Consistencia*: `Precision@1`, `Hit@k`, matriz de abstención, consistencia por grupo semántico, evolución de `top1_score` y curva de barrido de umbral.
+    3. *Latencia y Recursos*: Desglose de latencia por etapa (`guardrail`, `embeddings`, `retrieval`, `llm`, `herramienta`, `api_externa`) y consumo de RAM RSS / CPU.
+    4. *Herramientas y Errores*: Frecuencia de invocación de las 7 herramientas y distribución de errores por las 8 categorías del esquema (`rate_limit_429`, `auth_401`, `modelo_no_encontrado`, `timeout`, `red_api_externa`, `limite_iteraciones`, `herramienta_fallo`, `otro`).
+    5. *Seguridad y Privacidad*: Conteo de eventos de seguridad por control y acción (`pii`, `prompt_injection`, `fuga_prompt`, `respuesta_sin_respaldo`, `pii_hacia_proveedor`).
+    6. *Detección de Anomalías*: Tabla determinista de reglas nombradas (`latencia_sobre_p95`, `latencia_zscore_gt_2`, `tokens_sobre_p95`, `racha_errores_ge_2`, `zona_gris`, `muchas_herramientas`, `cerca_limite_iteraciones`).
+    7. *Explorador de Trazas*: Cronograma de ejecución con diagrama de Gantt por `trace_id`, eventos cronológicos e inspección de JSON crudo.
+* **Suite Ampliada a 73 Pruebas Automatizadas**: 100% de retrocompatibilidad con las 22 pruebas de EP2 y 51 pruebas especializadas en seguridad, telemetría, métricas, panel y benchmark.
 
 ---
 
@@ -153,29 +153,31 @@ sequenceDiagram
     participant LOG as logs/eventos.jsonl
 
     U->>AG: consulta ("Falté al examen por gripe...")
-    AG->>REG: emitir turno_iniciado(trace_id, consulta_longitud)
-    REG->>LOG: JSONL evento
-    AG->>SEC: enmascarar_pii(consulta) + detectar_inyeccion(consulta)
-    alt Inyección detectada
-        SEC-->>AG: Alerta de inyección
-        AG->>REG: emitir evento_seguridad(tipo="inyeccion_prompt")
+    AG->>REG: iniciar_traza(session_id, origen)
+    AG->>SEC: enmascarar(consulta) + analizar_inyeccion(consulta)
+    alt Inyección de severidad alta detectada
+        SEC-->>AG: severidad="alta"
+        AG->>REG: registrar("seguridad", control="prompt_injection", accion="bloqueado")
         REG->>LOG: JSONL evento
-        AG-->>U: Respuesta neutral segura y derivación
+        AG->>REG: registrar("turno", resultado="bloqueado_entrada")
+        REG->>LOG: JSONL evento
+        AG-->>U: Respuesta institucional de bloqueo (0 tokens LLM)
     else Consulta válida
-        AG->>RAG: buscar_semantico(consulta)
-        RAG-->>AG: fragmentos + scores
-        AG->>REG: emitir recuperacion_rag(k, duracion_ms, scores, secciones)
-        REG->>LOG: JSONL evento
         AG->>LLM: Invocación ReAct (con ManejadorObservabilidad)
-        LLM-->>AG: Respuesta borrador + tool calling
-        AG->>SEC: verificar_respaldo(respuesta, fragmentos) + detectar_fuga_prompt(respuesta)
-        alt Fuga o Alucinación detectada
-            SEC-->>AG: Alerta de seguridad
-            AG->>REG: emitir evento_seguridad(tipo="alucinacion" / "fuga_prompt")
+        AG->>RAG: buscar_semantico_detallado(consulta)
+        RAG-->>AG: candidatos + aceptados + top1_score
+        AG->>REG: registrar("retrieval", top_k, umbral, candidatos, decision)
+        REG->>LOG: JSONL evento
+        LLM-->>AG: Respuesta preliminar + tool calls
+        AG->>SEC: detectar_fuga_prompt(respuesta) + verificar_respaldo(respuesta)
+        alt Fuga o falta grave de respaldo detectada
+            SEC-->>AG: Alerta de salida
+            AG->>REG: registrar("seguridad", control="fuga_prompt" / "respuesta_sin_respaldo")
             REG->>LOG: JSONL evento
-            AG->>AG: Regenerar o ajustar respuesta institucional segura
+            AG->>AG: Sustituir por respuesta institucional segura / derivación
         end
-        AG->>REG: emitir turno_completado(duracion_ms, tokens, costo, ram, cpu)
+        AG->>REG: registrar("recursos", rss_mb, cpu_proceso_pct)
+        AG->>REG: registrar("turno", resultado, latencia_total_ms, tokens_total)
         REG->>LOG: JSONL evento
         AG-->>U: Respuesta final validada + metadatos
     end
@@ -187,17 +189,15 @@ sequenceDiagram
 
 | Dimensión / Métrica | Evento JSONL Fuente | Visualización en Panel | Indicador de Logro Duoc UC |
 |---|---|---|---|
-| **Latencia Total por Turno (p50, p95)** | `turno_completado.duracion_ms` | Pestaña *Latencia* (Histograma y Percentiles) | **IE1**: Métricas cuantitativas operacionales. |
-| **Latencia por Etapa (RAG, LLM, Tools)** | `etapa_completada.duracion_ms` | Pestaña *Latencia* (Barras apiladas y Gantt) | **IE1** e **IE2**: Diagnóstico fino de cuellos de botella. |
-| **Consumo de Tokens y Costo Estimado** | `turno_completado.tokens_total` | Pestaña *Resumen* (KPI Cards y serie temporal) | **IE1**: Optimización de costos y recursos de IA. |
-| **Consumo de Memoria RAM (RSS) y CPU** | `turno_completado.memoria_rss_mb`, `cpu_percent` | Pestaña *Latencia* (Área de RAM y serie CPU) | **IE1**: Comportamiento de infraestructura del host. |
-| **Calidad de Recuperación (Top-1 Score)** | `recuperacion_rag.mejor_score` | Pestaña *Precisión* (Histograma de scores) | **IE3**: Eficacia del pipeline RAG multilingüe. |
-| **Sensibilidad de Umbral RAG** | `recuperacion_rag.scores_todos` | Pestaña *Precisión* (Curva de barrido de umbral) | **IE3**: Calibración matemática anti-ruido. |
-| **Tasa de Acierto de Secciones (Recall)** | Benchmark vs. `recuperacion_rag.secciones_recuperadas` | Pestaña *Precisión* (Matriz y % acierto) | **IE3** y **IE4**: Evaluación contra ground truth. |
-| **Uso y Latencia de Herramientas** | `etapa_completada` (`herramienta:*`) | Pestaña *Herramientas* (Frecuencia y tiempos) | **IE2**: Supervisión del comportamiento ReAct. |
-| **Incidentes de Seguridad y PII** | `evento_seguridad` (PII, Inyección, Fuga, Respaldo) | Pestaña *Seguridad* (Torta y tabla de eventos) | **IE5**: Resguardo ético y normativo de datos. |
-| **Tasa de Errores y Degradaciones** | `etapa_completada.error` / `turno_completado.error_tipo` | Pestaña *Anomalías* (Barras por categoría) | **IE6**: Robustez operativa y fallos clasificados. |
-| **Trazabilidad de Auditoría Granular** | Colección de eventos vinculados por `trace_id` | Pestaña *Trazas* (Timeline y metadatos JSON) | **IE7** e **IE8**: Auditoría reproducible del agente. |
+| **Latencia total P50/P95 y por etapa** | `turno.latencia_total_ms`, `etapa.duracion_ms` | Pestañas *Resumen*, *Latencia y Recursos* | **IE2**: mide tiempos y ayuda a localizar cuellos de botella. |
+| **Tokens, RAM RSS y CPU** | `turno.tokens_total`, `recursos.rss_mb`, `recursos.cpu_proceso_pct` | Pestaña *Latencia y Recursos* | **IE2**: mide consumo de recursos. |
+| **Precision@1 y Hit@k de recuperación** | `benchmark_caso.observado.acierto_top1`, `hit_topk` | Pestaña *Precisión y Consistencia* | **IE1**: evalúa recuperación frente a secciones esperadas. |
+| **Consistencia ante paráfrasis** | `benchmark_caso.grupo_consistencia` | Pestaña *Precisión y Consistencia* | **IE1**: compara top-1, decisión y datos clave entre variantes. |
+| **Abstención y falsos rechazos** | `benchmark_caso.esperado` y `observado.decision` | Pestaña *Precisión y Consistencia* | **IE1**: mide decisiones frente a los casos etiquetados; excluye bloqueos de seguridad. |
+| **Frecuencia de errores** | `error.categoria`, `etapa.ok` | Pestañas *Herramientas y Errores*, *Anomalías* | **IE1 / IE3**: cuantifica fallos y permite analizarlos en las trazas. |
+| **Incidentes de seguridad y privacidad** | `seguridad.control`, `seguridad.accion` | Pestaña *Seguridad y Privacidad* | **IE8**: evidencia controles y eventos observados. |
+| **Trazabilidad por ejecución** | Eventos correlacionados por `trace_id` | Pestaña *Explorador de Trazas* | **IE3 / IE6**: permite seguir etapas y localizar anomalías. |
+| **Dashboard e informe** | Gráficos del panel + evidencia exportada | Streamlit / `docs/evidencia/` | **IE4 / IE5**: visualización e informe con respaldo documental. |
 
 ---
 
@@ -215,7 +215,7 @@ sequenceDiagram
 | Visualización Interactiva | **Plotly** | $\ge 5.20.0$ | Gráficos analíticos vectoriales desacoplados del RAG |
 | Procesamiento de Datos | **pandas** | $\ge 2.0.0$ | Agregación estadística y cálculo de percentiles |
 | API Externa | **date.nager.at** | REST JSON | Feriados nacionales oficiales de Chile |
-| Suite de Pruebas | **unittest** | Nativo Python | 68 pruebas unitarias y de integración automatizadas |
+| Suite de Pruebas | **unittest** | Nativo Python | 73 pruebas unitarias y de integración automatizadas |
 
 ---
 
@@ -266,27 +266,28 @@ UMBRAL_RELEVANCIA=0.82
 MARGEN_RELEVANCIA=0.02
 
 # --- Observabilidad y Telemetría (EP3) ---
-OBS_ACTIVADA=true
-OBS_LOG_PATH=logs/eventos.jsonl
-OBS_HABILITAR_RECURSOS=true
-OBS_AUDITAR_PROVEEDOR=true
+OBS_ACTIVA=1
+OBS_DIR=logs
+OBS_TRUNCAR_CHARS=300
+OBS_ZONA_GRIS=0.03
 
 # --- Guardrails de Seguridad (EP3) ---
-GUARDRAIL_ENMASCARAR_PII=true
-GUARDRAIL_DETECTAR_INYECCION=true
-GUARDRAIL_DETECTAR_FUGA=true
-GUARDRAIL_VERIFICAR_RESPALDO=true
+GUARDRAIL_PII=1
+GUARDRAIL_INYECCION=bloquear
+GUARDRAIL_RESPALDO=bloquear_grave
 
 # --- Benchmark y Presupuesto Económico (EP3) ---
-BENCH_PRESUPUESTO_TOKENS=60000
-BENCH_PERFIL=minimo
+BENCH_PRESUPUESTO_TOKENS=150000
+BENCH_MAX_TURNOS_LLM=15
+BENCH_PAUSA_SEG=2
+BENCH_TOKENS_POR_TURNO_ESTIMADO=8000
 ```
 
 ---
 
 ## 7. Ejecución y Verificación
 
-### 7.1 Ejecución de la Suite Completa de Pruebas (68 pruebas)
+### 7.1 Ejecución de la Suite Completa de Pruebas (73 pruebas)
 
 Todas las pruebas del sistema están automatizadas y no consumen tokens de API externa:
 
@@ -300,15 +301,17 @@ PYTHONPATH=. python -m unittest discover -s tests -v
 
 Salida esperada:
 ```
-Ran 68 tests in 4.7s
+Ran 73 tests (el tiempo depende del equipo)
 OK
 ```
 
 Desglose de la cobertura de pruebas:
 - `tests/test_asistente.py`: 22 pruebas base de la EP2 (RAG, ReAct, plazos, memoria, documentos).
-- `tests/test_seguridad.py`: 18 pruebas de guardrails (PII, inyecciones, fuga de prompt, verificación de citas).
-- `tests/test_benchmark.py`: 15 pruebas de integridad de casos, esquema y simulación dry-run.
-- `tests/test_panel.py`: 13 pruebas de generación de figuras Plotly y renderizado Streamlit.
+- `tests/test_seguridad.py`: 20 pruebas de guardrails (PII, inyecciones, ataques combinados, fuga de prompt, verificación de citas).
+- `tests/test_observabilidad.py`: 11 pruebas de esquema JSONL, concurrencia, callbacks, clasificación de errores y privacidad.
+- `tests/test_metricas.py`: 11 pruebas de funciones matemáticas puras (percentiles, tasas, matriz de abstención, consistencia y anomalías).
+- `tests/test_benchmark.py`: 6 pruebas de integridad de los 50 casos, perfiles y simulación dry-run.
+- `tests/test_panel.py`: 3 pruebas de constructores Plotly y renderizado Streamlit con `AppTest`.
 
 ### 7.2 Ejecución del Benchmark Token-Económico
 
@@ -376,7 +379,7 @@ Comandos internos: `/limpiar` (reinicia memoria conservando la traza), `/ayuda`,
 .
 ├── benchmark/
 │   ├── __init__.py
-│   ├── casos.json                  # 46 casos etiquetados de benchmark con ground truth
+│   ├── casos.json                  # 50 casos etiquetados; validación humana declarada en el JSON
 │   └── ejecutar.py                 # CLI del benchmark (perfiles, dry-run, presupuesto)
 ├── chatbot/
 │   ├── __init__.py
@@ -396,7 +399,7 @@ Comandos internos: `/limpiar` (reinicia memoria conservando la traza), `/ayuda`,
 │   │   └── matriz_controles_seguridad.md # Mapeo vs. OWASP Top 10 for LLM 2025
 │   ├── evidencia/
 │   │   ├── README.md               # Guía paso a paso para validación experimental
-│   │   └── pruebas_unittest.txt    # Evidencia de ejecución de las 68 pruebas
+│   │   └── pruebas_unittest.txt    # Evidencia de ejecución de las 73 pruebas (UTF-8)
 │   ├── metricas.md                 # Fórmulas y definiciones de observabilidad
 │   ├── Informe_Sol-Ia_EvP2_BenjaminQuiroz.pdf
 │   ├── PresentacionSol-IaBenjaminQuiroz.pdf
@@ -407,6 +410,7 @@ Comandos internos: `/limpiar` (reinicia memoria conservando la traza), `/ayuda`,
 │   ├── __init__.py
 │   ├── callbacks.py                # Callback handler LangChain para tokens y latencias
 │   ├── esquema.py                  # Esquema v1 de eventos JSONL y validador estricto
+│   ├── metricas.py                 # Cálculo determinista de KPIs, percentiles y anomalías
 │   ├── panel.py                    # Librería pura de figuras Plotly para el dashboard
 │   ├── recursos.py                 # Extracción no invasiva de RSS RAM y CPU (psutil)
 │   ├── registro.py                 # Escritor thread-safe de eventos y contexto de traza
@@ -415,9 +419,11 @@ Comandos internos: `/limpiar` (reinicia memoria conservando la traza), `/ayuda`,
 │   └── 1_Observabilidad.py         # Tablero analítico multi-página en Streamlit (7 tabs)
 ├── tests/
 │   ├── test_asistente.py           # 22 pruebas funcionales base (EP2)
-│   ├── test_benchmark.py           # 15 pruebas de integridad de benchmark y simulación
-│   ├── test_panel.py               # 13 pruebas de figuras analíticas y UI Streamlit
-│   └── test_seguridad.py           # 18 pruebas unitarias de guardrails de seguridad
+│   ├── test_benchmark.py           # 6 pruebas de integridad de benchmark y simulación
+│   ├── test_metricas.py            # 11 pruebas matemáticas de métricas y anomalías
+│   ├── test_observabilidad.py      # 11 pruebas de esquema JSONL, callbacks y privacidad
+│   ├── test_panel.py               # 3 pruebas de figuras analíticas y UI Streamlit
+│   └── test_seguridad.py           # 20 pruebas unitarias de guardrails de seguridad
 ├── .streamlit/
 │   └── config.toml                 # Configuración de servidor y tema visual Streamlit
 ├── construir_indice.py             # Indexación y reconstrucción vectorial
@@ -433,7 +439,7 @@ Comandos internos: `/limpiar` (reinicia memoria conservando la traza), `/ayuda`,
 ## 9. Declaración de Uso de IA en el Desarrollo
 
 > **Declaración obligatoria de autoría y uso de herramientas asistidas:**  
-> Se utilizó Codex (OpenAI) como apoyo para generar código y pruebas del repositorio. El análisis de resultados, los hallazgos, las recomendaciones y las reflexiones del informe son de autoría del estudiante.
+> Se utilizó Codex como apoyo en etapas previas del repositorio. Para esta revisión se utilizó OpenCode como apoyo para corregir y probar el benchmark, analizar datos agregados y preparar borradores de informe y material de estudio. Las etiquetas, el análisis crítico, las recomendaciones justificadas y las reflexiones individuales deben ser revisados y redactados por el equipo. Se cita este uso según https://bibliotecas.duoc.cl/ia.
 
 ---
 
